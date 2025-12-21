@@ -43,15 +43,15 @@
         .controls { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
         .ctrl-btn { padding: 10px 18px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; font-size: 0.9rem; }
 
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 1000px; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--grid-gap,10px); width: 100%; max-width: 1000px; }
         .card {
-            background-color: var(--card-default); color: var(--text-dark); height: 130px;
+            background-color: var(--card-default); color: var(--text-dark); height: var(--card-h,130px);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border-radius: 15px; box-shadow: 0 4px 0px #cbd5e1; cursor: pointer; user-select: none; transition: 0.3s;
+            border-radius: 15px; box-shadow: 0 4px 0px #cbd5e1; cursor: pointer; user-select: none; transition: 0.18s;
             position: relative; overflow: hidden;
         }
-        .emoji { font-size: 2.8rem; line-height: 1; margin-bottom: 5px; }
-        .word { font-size: 1.1rem; font-weight: 900; }
+        .emoji { font-size: var(--emoji-size,2.8rem); line-height: 1; margin-bottom: 5px; }
+        .word { font-size: var(--word-size,1.1rem); font-weight: 900; }
 
         .master-view .card.team1 { background-color: var(--team1-color) !important; color: white !important; border: 2px solid #fff; }
         .master-view .card.team2 { background-color: var(--team2-color) !important; color: white !important; border: 2px solid #fff; }
@@ -73,8 +73,8 @@
         
         @media (max-width: 700px) { .grid { grid-template-columns: repeat(3, 1fr); } .card { height: 110px; } }
 
-        /* make board scaling smooth and set transform origin for fit-to-screen */
-        #gameBoard { transition: transform .22s ease; transform-origin: top center; }
+        /* board sizing uses CSS variables so we can resize cards fluidly to fit the viewport */
+        #gameBoard { transition: all .18s ease; transform-origin: top center; }
     </style>
 </head>
 <body>
@@ -308,54 +308,95 @@
 
         function toggleMasterView() { document.getElementById('gameBoard').classList.toggle('master-view'); }
 
-        // Toggle "fit to screen" for the board: scales #gameBoard so all cards fit inside the viewport on small devices.
+        // Toggle "fit to screen" for the board by adjusting card sizes (CSS variables)
         function toggleFS() {
             const board = document.getElementById('gameBoard');
             if (!board) return;
 
             const isScaled = board.dataset.scaled === 'true';
             if (isScaled) {
-                // restore
-                board.style.transform = '';
+                // restore defaults
                 board.dataset.scaled = 'false';
-                delete board.dataset.naturalWidth; delete board.dataset.naturalHeight;
+                board.style.removeProperty('--card-h');
+                board.style.removeProperty('--emoji-size');
+                board.style.removeProperty('--word-size');
+                board.style.removeProperty('--grid-gap');
                 document.body.style.overflow = '';
                 return;
             }
 
-            // measure natural size (unscaled)
+            // determine columns from computed grid template
+            const cs = window.getComputedStyle(board);
+            const cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length || 5;
+            const gap = parseFloat(cs.gap || cs.columnGap || '10') || 10;
+
+            // number of cards
+            const cardsCount = board.children.length || 25;
+            const rows = Math.ceil(cardsCount / cols);
+
+            // measure available height and width for the grid area
             const rect = board.getBoundingClientRect();
-            const naturalW = rect.width;
-            const naturalH = rect.height;
-
-            // compute available space below the top of the board
             const top = rect.top;
+            const controls = document.querySelector('.controls');
+            const controlsH = controls ? controls.getBoundingClientRect().height : 0;
+            const footer = document.querySelector('.footer-heka');
+            const footerH = footer ? footer.getBoundingClientRect().height : 0;
+
             const availableW = Math.max(50, window.innerWidth - 20);
-            const availableH = Math.max(50, window.innerHeight - top - 20);
+            // subtract other UI elements from available height
+            const usedH = top + controlsH + footerH + 40; // extra margin
+            const availableH = Math.max(50, window.innerHeight - usedH);
 
-            // calculate scale (never upscale above 1)
-            const scale = Math.min(1, availableW / naturalW, availableH / naturalH);
+            // compute card height so rows fit in availableH (consider gaps)
+            const totalGapsH = Math.max(0, (rows - 1) * gap);
+            const candidateH = (availableH - totalGapsH) / rows;
 
-            board.dataset.naturalWidth = naturalW;
-            board.dataset.naturalHeight = naturalH;
-            board.style.transform = `scale(${scale})`;
+            // also ensure card width fits: column width is availableW / cols minus gaps
+            const totalGapsW = Math.max(0, (cols - 1) * gap);
+            const colWidth = (availableW - totalGapsW) / cols;
+
+            // Prefer a square-ish card: limit height so it doesn't exceed column width * 1.2
+            const finalCardH = Math.max(36, Math.min(130, Math.min(candidateH, colWidth * 1.2)));
+
+            // apply CSS variables to resize cards and fonts proportionally
+            board.style.setProperty('--card-h', finalCardH + 'px');
+            board.style.setProperty('--emoji-size', Math.max(12, (finalCardH * 0.34)) + 'px');
+            board.style.setProperty('--word-size', Math.max(10, (finalCardH * 0.13)) + 'px');
+            board.style.setProperty('--grid-gap', gap + 'px');
+
             board.dataset.scaled = 'true';
             // prevent body scrolling while scaled to keep board visible
             document.body.style.overflow = 'hidden';
         }
 
-        // Recompute scale on resize/orientation change while in scaled mode
+        // Recompute sizes on resize while in scaled mode
         window.addEventListener('resize', () => {
             const board = document.getElementById('gameBoard');
             if (!board || board.dataset.scaled !== 'true') return;
-            const naturalW = parseFloat(board.dataset.naturalWidth) || board.getBoundingClientRect().width;
-            const naturalH = parseFloat(board.dataset.naturalHeight) || board.getBoundingClientRect().height;
+            // reuse toggleFS logic by re-applying while keeping scaled flag off temporarily
+            // call toggleFS twice would be messy; instead compute new sizes inline
+            const cs = window.getComputedStyle(board);
+            const cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length || 5;
+            const gap = parseFloat(cs.gap || cs.columnGap || '10') || 10;
+            const cardsCount = board.children.length || 25;
+            const rows = Math.ceil(cardsCount / cols);
             const rect = board.getBoundingClientRect();
             const top = rect.top;
+            const controls = document.querySelector('.controls');
+            const controlsH = controls ? controls.getBoundingClientRect().height : 0;
+            const footer = document.querySelector('.footer-heka');
+            const footerH = footer ? footer.getBoundingClientRect().height : 0;
             const availableW = Math.max(50, window.innerWidth - 20);
-            const availableH = Math.max(50, window.innerHeight - top - 20);
-            const scale = Math.min(1, availableW / naturalW, availableH / naturalH);
-            board.style.transform = `scale(${scale})`;
+            const usedH = top + controlsH + footerH + 40;
+            const availableH = Math.max(50, window.innerHeight - usedH);
+            const totalGapsH = Math.max(0, (rows - 1) * gap);
+            const candidateH = (availableH - totalGapsH) / rows;
+            const totalGapsW = Math.max(0, (cols - 1) * gap);
+            const colWidth = (availableW - totalGapsW) / cols;
+            const finalCardH = Math.max(36, Math.min(130, Math.min(candidateH, colWidth * 1.2)));
+            board.style.setProperty('--card-h', finalCardH + 'px');
+            board.style.setProperty('--emoji-size', Math.max(12, (finalCardH * 0.34)) + 'px');
+            board.style.setProperty('--word-size', Math.max(10, (finalCardH * 0.13)) + 'px');
         });
         function controlTimer(action) {
             if(action === 'start') { clearInterval(timerInt); timerInt = setInterval(() => { if(timeLeft > 0) { timeLeft--; updateTimerUI(); } }, 1000); }
