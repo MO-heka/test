@@ -72,6 +72,16 @@
         .return-footer { background: transparent; color: #64748b; border: 1px solid #334155; margin: 20px 0; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
         
         @media (max-width: 700px) { .grid { grid-template-columns: repeat(3, 1fr); } .card { height: 110px; } }
+        
+            /* وضع ملء الشاشة - يضبط اللوحة لتناسب شاشة الهاتف عن طريق موازنة الحجم (scale) وإعادة تنسيق المسافات */
+            .fs-mode #gameArea { width: 100%; height: calc(100vh - 12px); padding: 8px; align-items: stretch; overflow: hidden; }
+            .fs-mode .grid { gap: 6px; max-width: none; }
+            .fs-mode .card { height: 78px; }
+            .fs-mode .emoji { font-size: 1.6rem; }
+            .fs-mode .word { font-size: 0.85rem; }
+            .fs-mode #gameBoard { transform-origin: top center; transition: transform 200ms ease; margin: 0 auto; }
+            /* يقلل الحواف لبعض العناصر لتوفير مساحة عند الملء */
+            .fs-mode .stats, .fs-mode .controls, .fs-mode .timer-ui { padding: 6px 10px; font-size: 0.95rem; }
     </style>
 </head>
 <body>
@@ -138,41 +148,6 @@
         const db = firebase.database();
 
         let currentMode = "local", myRole = "explorer", roomId = "", timerInt, timeLeft = 60;
-
-        // --- Viewport toggle support ---
-        // We store the original viewport meta content so we can restore it later
-        let originalViewportMetaContent = null;
-        /**
-         * Enable/disable a 'desktop-like' viewport by setting a fixed width (e.g. 1200px).
-         * If the page doesn't have a viewport meta tag, one will be created.
-         * @param {boolean} enable
-         * @param {number} width
-         */
-        function setViewportDesktop(enable, width = 1200) {
-            let meta = document.querySelector('meta[name="viewport"]');
-            if (!meta) {
-                meta = document.createElement('meta');
-                meta.name = 'viewport';
-                document.getElementsByTagName('head')[0].appendChild(meta);
-            }
-            if (enable) {
-                if (originalViewportMetaContent === null) originalViewportMetaContent = meta.getAttribute('content') || '';
-                // force a desktop-like layout width
-                meta.setAttribute('content', `width=${width}, initial-scale=1.0`);
-            } else {
-                if (originalViewportMetaContent !== null) {
-                    meta.setAttribute('content', originalViewportMetaContent);
-                    originalViewportMetaContent = null;
-                }
-            }
-        }
-
-        // When the fullscreen state changes (user exits fullscreen with ESC), restore viewport
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement) {
-                setViewportDesktop(false);
-            }
-        });
         // قائمة الكلمات الكاملة (يرجى ملؤها بكلماتك الـ 300)
         const words = [
             {w: "أسد", e: "🦁"}, {w: "فيل", e: "🐘"}, {w: "زرافة", e: "🦒"}, {w: "نمر", e: "🐯"}, {w: "صقر", e: "🦅"},
@@ -339,27 +314,67 @@
         }
 
         function toggleMasterView() { document.getElementById('gameBoard').classList.toggle('master-view'); }
+        // عند الضغط على زر ملء الشاشة: ندخل وضع ملء الشاشة ونضيف فئة .fs-mode
         function toggleFS() {
-            // Try to enter fullscreen and set desktop viewport. If fullscreen isn't supported
-            // the viewport will still be changed so the page appears desktop-like on mobile.
+            const el = document.documentElement;
             if (!document.fullscreenElement) {
-                // set viewport first so mobile browsers reflow as desktop-like
-                setViewportDesktop(true, 1200);
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(() => {
-                        // If requestFullscreen fails, keep the viewport change (so user still gets desktop layout)
-                    });
-                }
+                // اطلب ملء الشاشة أولاً، ثم فعّل واسطة الملء (class)
+                el.requestFullscreen().then(() => {
+                    el.classList.add('fs-mode');
+                    // ضبط المقياس بعد قليل لكي يستقر التخطيط
+                    setTimeout(adjustBoardScale, 150);
+                }).catch(() => {
+                    // في حال منع المتصفح الملء، نعالج الوضع محلياً (نضيف الفئة ونضبط الحجم)
+                    el.classList.add('fs-mode');
+                    adjustBoardScale();
+                });
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => {
-                        // ignore
-                    });
-                }
-                // restore the original viewport immediately (fullscreenchange listener will also restore on ESC)
-                setViewportDesktop(false);
+                // الخروج من وضع ملء الشاشة - الحدث fullscreenchange سيزيل الفئة
+                document.exitFullscreen();
             }
         }
+
+        // يحسب مقياس transform لعنصر اللوحة بحيث يتناسب داخل الشاشة (العرض والارتفاع)
+        function adjustBoardScale() {
+            const el = document.documentElement;
+            const board = document.getElementById('gameBoard');
+            if (!board) return;
+
+            // إذا الفئة غير مفعلة نعيد القياسات الافتراضية
+            if (!el.classList.contains('fs-mode')) {
+                board.style.transform = '';
+                board.style.margin = '';
+                return;
+            }
+
+            // مدة بسيطة لضمان أن تخطيط الشبكة جاهز (خاصة بعد تغيير الفئات)
+            // نقيس حجم اللوحة الفعلي ثم نحسب مقياس العرض والارتفاع
+            const rect = board.getBoundingClientRect();
+            const availableW = Math.max(200, window.innerWidth - 20);
+            const availableH = Math.max(200, window.innerHeight - 140); // اترك مكان للرأس/التحكم
+            const scaleW = availableW / rect.width;
+            const scaleH = availableH / rect.height;
+            const scale = Math.min(1, scaleW, scaleH);
+
+            board.style.transform = `scale(${scale})`;
+            board.style.margin = '0 auto';
+        }
+
+        // حدث تغير الملء: عند الخروج نزيل الفئة ونرجع القياسات
+        document.addEventListener('fullscreenchange', () => {
+            const el = document.documentElement;
+            const board = document.getElementById('gameBoard');
+            if (document.fullscreenElement) {
+                el.classList.add('fs-mode');
+                setTimeout(adjustBoardScale, 120);
+            } else {
+                el.classList.remove('fs-mode');
+                if (board) { board.style.transform = ''; board.style.margin = ''; }
+            }
+        });
+
+        // إعادة ضبط عند تغيير حجم النافذة (مثلاً تدوير الهاتف)
+        window.addEventListener('resize', () => { setTimeout(adjustBoardScale, 80); });
         function controlTimer(action) {
             if(action === 'start') { clearInterval(timerInt); timerInt = setInterval(() => { if(timeLeft > 0) { timeLeft--; updateTimerUI(); } }, 1000); }
             else if(action === 'stop') { clearInterval(timerInt); }
