@@ -50,12 +50,13 @@
             border-radius: 15px; box-shadow: 0 4px 0px #cbd5e1; cursor: pointer; user-select: none; transition: 0.3s;
             position: relative; overflow: hidden;
         }
-        /* fullscreen-mode adjustments: shrink layout to fit small screens (phones) */
-        #gameArea.fs-mode { padding: 10px; }
-        #gameArea.fs-mode .grid { transition: transform 0.18s ease; transform-origin: top center; width: 100%; max-width: 1000px; }
-        #gameArea.fs-mode .card { height: 90px; border-radius: 10px; }
-        #gameArea.fs-mode .emoji { font-size: 1.9rem; }
-        #gameArea.fs-mode .word { font-size: 0.95rem; }
+    /* fullscreen-mode adjustments: keep scroll, use 4 columns for phones, smaller cards */
+    #gameArea.fs-mode { padding: 8px; height: 100vh; overflow: auto; -webkit-overflow-scrolling: touch; }
+    /* Prefer 4 columns in fullscreen mode so more cards fit across the width */
+    #gameArea.fs-mode .grid { transition: transform 0.18s ease; transform-origin: top center; width: 100%; max-width: 1000px; grid-template-columns: repeat(4, 1fr) !important; }
+    #gameArea.fs-mode .card { height: 84px; border-radius: 10px; }
+    #gameArea.fs-mode .emoji { font-size: 1.6rem; }
+    #gameArea.fs-mode .word { font-size: 0.9rem; }
         .emoji { font-size: 2.8rem; line-height: 1; margin-bottom: 5px; }
         .word { font-size: 1.1rem; font-weight: 900; }
 
@@ -338,7 +339,16 @@
         // When entering/exiting fullscreen or resizing, compute a scale to fit the board into the viewport
         function computeAndApplyScale() {
             const board = document.getElementById('gameBoard');
+            const ga = document.getElementById('gameArea');
             if (!board) return;
+            // If we're using fs-mode layout (4 columns + smaller cards), don't apply transform scaling
+            if (ga && ga.classList.contains('fs-mode')) {
+                // ensure no transform remains
+                board.style.transform = '';
+                board.style.webkitTransform = '';
+                return;
+            }
+
             // reset first so measurements are natural
             board.style.transform = '';
 
