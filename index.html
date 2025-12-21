@@ -2,8 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ورقة شفرة - نسخة هيكا</title>
+    <!-- Use viewport-fit=cover for phones with notches and allow user scaling for accessibility -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>v9ورقة شفرة - نسخة هيكا</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -16,11 +17,21 @@
             --neutral-color: #000000; --bomb-color: #10b981;
             --text-dark: #1e293b; --accent-color: #fbbf24;
             --revealed-mark: #ffff00;
+            /* safe area fallbacks */
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
         }
 
+        /* make sure html/body fill viewport (important for fullscreen) */
+        html, body { height: 100%; }
+
+        /* base body styles with safe-area paddings for notches */
         body {
             font-family: 'Cairo', sans-serif; background-color: var(--bg-color); color: white;
-            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+            margin: 0; padding: calc(10px + var(--safe-top)) calc(10px + var(--safe-right)) calc(10px + var(--safe-bottom));
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh; box-sizing: border-box;
         }
 
         .lobby-box {
@@ -43,15 +54,17 @@
         .controls { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
         .ctrl-btn { padding: 10px 18px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; font-size: 0.9rem; }
 
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--grid-gap,10px); width: 100%; max-width: 1000px; }
+        /* grid and cards: use aspect-ratio so cards stay square on all screens */
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 1000px; }
         .card {
-            background-color: var(--card-default); color: var(--text-dark); height: var(--card-h,130px);
+            background-color: var(--card-default); color: var(--text-dark); /*height: 130px;*/
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border-radius: 15px; box-shadow: 0 4px 0px #cbd5e1; cursor: pointer; user-select: none; transition: 0.18s;
-            position: relative; overflow: hidden;
+            border-radius: 15px; box-shadow: 0 4px 0px #cbd5e1; cursor: pointer; user-select: none; transition: 0.3s;
+            position: relative; overflow: hidden; aspect-ratio: 1 / 1; height: auto;
+            padding: 8px;
         }
-        .emoji { font-size: var(--emoji-size,2.8rem); line-height: 1; margin-bottom: 5px; }
-        .word { font-size: var(--word-size,1.1rem); font-weight: 900; }
+        .emoji { font-size: 2.8rem; line-height: 1; margin-bottom: 5px; }
+        .word { font-size: 1.1rem; font-weight: 900; text-align: center; word-break: break-word; }
 
         .master-view .card.team1 { background-color: var(--team1-color) !important; color: white !important; border: 2px solid #fff; }
         .master-view .card.team2 { background-color: var(--team2-color) !important; color: white !important; border: 2px solid #fff; }
@@ -71,10 +84,19 @@
         .footer-heka { margin-top: 20px; font-family: 'Pacifico', cursive; font-size: 2.2rem; color: var(--accent-color); opacity: 0.6; }
         .return-footer { background: transparent; color: #64748b; border: 1px solid #334155; margin: 20px 0; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
         
-        @media (max-width: 700px) { .grid { grid-template-columns: repeat(3, 1fr); } .card { height: 110px; } }
+        /* responsive grid for phones */
+        @media (max-width: 900px) { .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; } }
+        @media (max-width: 700px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 420px) { .grid { grid-template-columns: repeat(2, 1fr); } .card { border-radius: 12px; } }
 
-        /* board sizing uses CSS variables so we can resize cards fluidly to fit the viewport */
-        #gameBoard { transition: all .18s ease; transform-origin: top center; }
+        /* fullscreen styles: make board expand and use full safe area */
+        :fullscreen, :-webkit-full-screen { width: 100%; height: 100%; }
+        :fullscreen body, :-webkit-full-screen body { padding: calc(6px + var(--safe-top)) calc(6px + var(--safe-right)) calc(6px + var(--safe-bottom)); }
+        :fullscreen #gameArea, :-webkit-full-screen #gameArea { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; }
+        :fullscreen .grid, :-webkit-full-screen .grid {
+            width: 100%; max-width: none; flex: 1 1 auto; align-self: stretch; grid-auto-rows: 1fr; gap: 6px;
+        }
+        :fullscreen .card, :-webkit-full-screen .card { aspect-ratio: 1 / 1; }
     </style>
 </head>
 <body>
@@ -307,103 +329,32 @@
         }
 
         function toggleMasterView() { document.getElementById('gameBoard').classList.toggle('master-view'); }
-
-        // Toggle "fit to screen" for the board by adjusting card sizes (CSS variables)
         function toggleFS() {
-            const board = document.getElementById('gameBoard');
-            if (!board) return;
-
-            const isScaled = board.dataset.scaled === 'true';
-            if (isScaled) {
-                // restore defaults
-                board.dataset.scaled = 'false';
-                board.style.removeProperty('--card-h');
-                board.style.removeProperty('--emoji-size');
-                board.style.removeProperty('--word-size');
-                board.style.removeProperty('--grid-gap');
-                document.body.style.overflow = '';
-                return;
+            // try standard API, fallback to webkit for older iOS/Android webviews
+            const el = document.documentElement;
+            const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            if (!isFull) {
+                if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
             }
-
-            // determine columns from computed grid template
-            const cs = window.getComputedStyle(board);
-            const cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length || 5;
-            const gap = parseFloat(cs.gap || cs.columnGap || '10') || 10;
-
-            // number of cards
-            const cardsCount = board.children.length || 25;
-            const rows = Math.ceil(cardsCount / cols);
-
-            // measure available height and width for the grid area
-            const rect = board.getBoundingClientRect();
-            const top = rect.top;
-            const controls = document.querySelector('.controls');
-            const controlsH = controls ? controls.getBoundingClientRect().height : 0;
-            const footer = document.querySelector('.footer-heka');
-            const footerH = footer ? footer.getBoundingClientRect().height : 0;
-
-            const availableW = Math.max(50, window.innerWidth - 20);
-            // subtract other UI elements from available height
-            const usedH = top + controlsH + footerH + 40; // extra margin
-            const availableH = Math.max(50, window.innerHeight - usedH);
-
-            // compute card height so rows fit in availableH (consider gaps)
-            const totalGapsH = Math.max(0, (rows - 1) * gap);
-            const candidateH = (availableH - totalGapsH) / rows;
-
-            // also ensure card width fits: column width is availableW / cols minus gaps
-            const totalGapsW = Math.max(0, (cols - 1) * gap);
-            const colWidth = (availableW - totalGapsW) / cols;
-
-            // Prefer a square-ish card: limit height so it doesn't exceed column width * 1.2
-            const finalCardH = Math.max(36, Math.min(130, Math.min(candidateH, colWidth * 1.2)));
-
-            // apply CSS variables to resize cards and fonts proportionally
-            board.style.setProperty('--card-h', finalCardH + 'px');
-            board.style.setProperty('--emoji-size', Math.max(12, (finalCardH * 0.34)) + 'px');
-            board.style.setProperty('--word-size', Math.max(10, (finalCardH * 0.13)) + 'px');
-            board.style.setProperty('--grid-gap', gap + 'px');
-
-            board.dataset.scaled = 'true';
-            // prevent body scrolling while scaled to keep board visible
-            document.body.style.overflow = 'hidden';
         }
-
-        // Recompute sizes on resize while in scaled mode
-        window.addEventListener('resize', () => {
-            const board = document.getElementById('gameBoard');
-            if (!board || board.dataset.scaled !== 'true') return;
-            // reuse toggleFS logic by re-applying while keeping scaled flag off temporarily
-            // call toggleFS twice would be messy; instead compute new sizes inline
-            const cs = window.getComputedStyle(board);
-            const cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length || 5;
-            const gap = parseFloat(cs.gap || cs.columnGap || '10') || 10;
-            const cardsCount = board.children.length || 25;
-            const rows = Math.ceil(cardsCount / cols);
-            const rect = board.getBoundingClientRect();
-            const top = rect.top;
-            const controls = document.querySelector('.controls');
-            const controlsH = controls ? controls.getBoundingClientRect().height : 0;
-            const footer = document.querySelector('.footer-heka');
-            const footerH = footer ? footer.getBoundingClientRect().height : 0;
-            const availableW = Math.max(50, window.innerWidth - 20);
-            const usedH = top + controlsH + footerH + 40;
-            const availableH = Math.max(50, window.innerHeight - usedH);
-            const totalGapsH = Math.max(0, (rows - 1) * gap);
-            const candidateH = (availableH - totalGapsH) / rows;
-            const totalGapsW = Math.max(0, (cols - 1) * gap);
-            const colWidth = (availableW - totalGapsW) / cols;
-            const finalCardH = Math.max(36, Math.min(130, Math.min(candidateH, colWidth * 1.2)));
-            board.style.setProperty('--card-h', finalCardH + 'px');
-            board.style.setProperty('--emoji-size', Math.max(12, (finalCardH * 0.34)) + 'px');
-            board.style.setProperty('--word-size', Math.max(10, (finalCardH * 0.13)) + 'px');
-        });
         function controlTimer(action) {
             if(action === 'start') { clearInterval(timerInt); timerInt = setInterval(() => { if(timeLeft > 0) { timeLeft--; updateTimerUI(); } }, 1000); }
             else if(action === 'stop') { clearInterval(timerInt); }
             else { clearInterval(timerInt); timeLeft = 60; updateTimerUI(); }
         }
         function updateTimerUI() { let m = Math.floor(timeLeft/60).toString().padStart(2,'0'), s = (timeLeft%60).toString().padStart(2,'0'); document.getElementById('timerDisplay').innerText = `${m}:${s}`; }
+        
+        // Keep body aware of fullscreen state (useful if you want to apply .fs-mode styles)
+        document.addEventListener('fullscreenchange', () => {
+            document.body.classList.toggle('fs-mode', !!document.fullscreenElement);
+        });
+        document.addEventListener('webkitfullscreenchange', () => {
+            document.body.classList.toggle('fs-mode', !!document.webkitFullscreenElement);
+        });
     </script>
 </body>
 </html>
