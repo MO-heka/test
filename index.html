@@ -21,6 +21,7 @@
             margin: 0;
             padding: 20px;
             text-align: center;
+            user-select: none; /* لمنع النسخ السريع للنصوص */
         }
 
         .container {
@@ -31,6 +32,7 @@
             border-radius: 15px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             min-height: 80vh;
+            position: relative;
         }
 
         h1, h2, h3 { color: var(--primary-color); }
@@ -51,7 +53,17 @@
         button:hover { filter: brightness(0.9); transform: scale(1.02); }
         button:disabled { background-color: var(--locked-color); cursor: not-allowed; transform: none; color: #777;}
         button.secondary { background-color: #546e7a; }
-        button.option-btn { width: 100%; display: block; margin: 10px 0; text-align: right; padding-right: 20px; border: 1px solid #ddd; background: #fff; color: #333; }
+        
+        button.option-btn { 
+            width: 100%; 
+            display: block; 
+            margin: 10px 0; 
+            text-align: right; 
+            padding-right: 20px; 
+            border: 1px solid #ddd; 
+            background: #fff; 
+            color: #333; 
+        }
         button.option-btn:hover { background: #e8f5e9; }
 
         input {
@@ -69,7 +81,7 @@
         .active-screen { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Accordion for Study */
+        /* Accordion */
         .accordion {
             background-color: #f1f8e9;
             color: #2e7d32;
@@ -86,7 +98,6 @@
             display: flex;
             justify-content: space-between;
         }
-        .accordion:hover { background-color: #dcedc8; }
         .panel {
             padding: 0 15px;
             background-color: white;
@@ -108,18 +119,28 @@
             position: relative;
         }
         .level-card.locked { opacity: 0.7; background: #f9f9f9; }
-        .level-card.locked::after {
-            content: "🔒";
-            position: absolute;
-            top: 50%;
-            left: 20px;
-            font-size: 24px;
-            transform: translateY(-50%);
-        }
-        .level-title { font-size: 1.2em; font-weight: bold; margin-bottom: 10px; display: block;}
-
-        .alert { padding: 15px; background-color: #ffebee; color: #c62828; border-radius: 8px; display: none; margin: 10px 0; border: 1px solid #ef9a9a;}
+        .level-card.completed { border: 2px solid #a5d6a7; }
         
+        .alert { padding: 15px; background-color: #ffebee; color: #c62828; border-radius: 8px; display: none; margin: 10px 0; border: 1px solid #ef9a9a;}
+
+        /* Toast Notification for Points */
+        .toast {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ffca28;
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .toast.show { opacity: 1; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; border-bottom: 1px solid #ddd; }
         th { background-color: var(--primary-color); color: white; }
@@ -129,10 +150,10 @@
 <body>
 
 <div class="container">
-    
+    <div id="points-toast" class="toast">✨ +1 نقطة مذاكرة</div>
+
     <div id="login-screen" class="screen active-screen">
         <h1>🌙 مسابقة نور الإسلام</h1>
-        <p>مرحباً بك في رحلة العلم والإيمان</p>
         <div style="margin: 30px 0;">
             <input type="text" id="username" placeholder="اكتب اسمك هنا..." autocomplete="off">
         </div>
@@ -146,32 +167,28 @@
         </div>
         <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
         
-        <div id="levels-container">
-            </div>
-
+        <div id="levels-container"></div>
         <button class="secondary" onclick="showLeaderboard()">🏆 لوحة الصدارة</button>
     </div>
 
     <div id="study-screen" class="screen">
         <h2 id="study-title"></h2>
-        <p style="font-size:0.9em; color:#666;">اضغط على العناوين لقراءة الشرح 👇</p>
+        <p style="font-size:0.8em; color:#2e7d32;">💡 نصيحة: ستحصل على نقاط إضافية لكل دقيقة مذاكرة!</p>
         <div id="study-content-area"></div>
         <br>
         <div style="display:flex; justify-content:space-between;">
-            <button class="secondary" onclick="showScreen('dashboard-screen')">عودة 🔙</button>
-            <button onclick="startQuiz()">جاهز للاختبار ✅</button>
+            <button class="secondary" onclick="exitStudy()">عودة 🔙</button>
+            <button onclick="goToQuizFromStudy()">جاهز للاختبار ✅</button>
         </div>
     </div>
 
     <div id="quiz-screen" class="screen">
         <h2 id="quiz-title"></h2>
         <div class="alert" id="quiz-alert"></div>
-        
         <div style="background:#fafafa; padding:20px; border-radius:10px; margin-top:20px;">
             <h3 id="question-text" style="color:#444;"></h3>
             <div id="options-container"></div>
         </div>
-        
         <p id="progress-text" style="margin-top:20px; color:#888;"></p>
     </div>
 
@@ -198,11 +215,9 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
     import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-    // ----------------------------------------------------
-    // ضع بياناتك هنا (Firebase Config)
-    // ----------------------------------------------------
+    // ⛔ استبدل هذا الجزء ببياناتك الحقيقية من فايربيس
     const firebaseConfig = {
-        apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
+       apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
 authDomain: "heka-codenames.firebaseapp.com",
 databaseURL: "https://heka-codenames-default-rtdb.firebaseio.com",
 projectId: "heka-codenames",
@@ -216,10 +231,10 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
     try {
         const app = initializeApp(firebaseConfig);
         db = getDatabase(app);
-    } catch(e) { console.log("Firebase not setup"); }
+    } catch(e) { console.log("Firebase config missing or error"); }
 
     // ====================================================
-    // 📂 قاعدة بيانات اللعبة (المحتوى والأسئلة)
+    // 📂 بيانات المراحل
     // ====================================================
     
     const gameLevels = [
@@ -227,78 +242,65 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
             id: 1,
             title: "المرحلة 1: أركان الإسلام 🕌",
             study: [
-                { t: "أركان الإسلام الخمسة (مقدمة)", c: "أعمال الجوارح الظاهرة، من أنكرها كفر. حديث: (بُنِي الإسلامُ على خمسٍ...)." },
-                { t: "1. الشّهادتان ☝️", c: "شهادة أن لا إله إلا الله وأن محمداً رسول الله. هي أساس قبول الأعمال." },
-                { t: "2. إقامة الصّلاة 🤲", c: "عمود الدين، 5 صلوات في اليوم والليلة. أول ما يحاسب عليه العبد." },
-                { t: "3. إيتاء الزّكاة 💰", c: "حق واجب في المال عند بلوغ النصاب، طهرة للمال ومساعدة للمحتاج." },
-                { t: "4. صوم رمضان 🌙", c: "الإمساك عن المفطرات (الأكل، الشرب، الذنوب) من الفجر للمغرب." },
-                { t: "5. الحج 🕋", c: "قصد بيت الله الحرام لمن استطاع إليه سبيلاً (مالياً وصحياً وأمنياً) مرة في العمر." }
+                { t: "أركان الإسلام الخمسة", c: "بني الإسلام على خمس: شهادة أن لا إله إلا الله، وإقام الصلاة، وإيتاء الزكاة، وصوم رمضان، وحج البيت." },
+                { t: "الشهادتان والصلاة", c: "الشهادتان مفتاح الإسلام. والصلاة عمود الدين وهي خمس صلوات في اليوم والليلة." },
+                { t: "الزكاة والصوم والحج", c: "الزكاة حق المال. والصوم في رمضان. والحج مرة في العمر لمن استطاع." }
             ],
             questions: [
                 { q: "ما هو الركن الأول من أركان الإسلام؟", opts: ["الصلاة", "الشهادتان", "الحج", "الزكاة"], a: 1 },
                 { q: "كم عدد الصلوات المفروضة؟", opts: ["3", "4", "5", "6"], a: 2 },
-                { q: "عمود الدين هو:", opts: ["الزكاة", "الصيام", "الصلاة", "الحج"], a: 2 },
-                { q: "شرط وجوب الحج هو:", opts: ["الاستطاعة", "الزواج", "حفظ القرآن", "التصدق"], a: 0 },
-                { q: "الإمساك عن المفطرات هو:", opts: ["الحج", "الصيام", "الصلاة", "الشهادة"], a: 1 }
+                { q: "الحج واجب:", opts: ["كل سنة", "مرة في العمر", "كل 5 سنوات"], a: 1 }
             ]
         },
         {
             id: 2,
             title: "المرحلة 2: أركان الإيمان ❤️",
             study: [
-                { t: "أركان الإيمان الستة (مقدمة)", c: "الإيمان عمل القلب. ذكرت في القرآن والسنة (حديث جبريل). وهي 6 أركان." },
-                { t: "1. الإيمان بالله ﷻ", c: "التصديق بوجوده، توحيده في عبادته، وأسمائه وصفاته، والتسليم لأمره." },
-                { t: "2. الإيمان بالملائكة 🕊️", c: "مخلوقات من نور، لا يعصون الله. منهم جبريل (للوحي)، وحملة العرش، والكتبة." },
-                { t: "3. الإيمان بالكتب السماوية 📚", c: "كلام الله لأنبيائه. القرآن (لمحمد ﷺ)، الإنجيل (لعيسى)، الزبور (لداود). والقرآن ناسخ لما قبله." },
-                { t: "4. الإيمان بالرسل 👳", c: "التصديق بمن بعثهم الله، ومعجزاتهم. أولهم نوح وآخرهم محمد ﷺ. لا نفرق بين أحد منهم." },
-                { t: "5. الإيمان باليوم الآخر ⏳", c: "يوم القيامة، البعث بعد الموت، الحساب، الميزان، الصراط، الجنة والنار." },
-                { t: "6. الإيمان بالقدر خيره وشره ✍️", c: "علم الله السابق لكل شيء، وكتابته في اللوح المحفوظ، وأن كل شيء بمشيئته وخلقه." }
+                { t: "أركان الإيمان الستة", c: "أن تؤمن بالله، وملائكته، وكتبه، ورسله، واليوم الآخر، والقدر خيره وشره." },
+                { t: "الإيمان بالله والملائكة", c: "التصديق بوجود الله ووحدانيته. والملائكة خلق من نور لا يعصون الله." },
+                { t: "الكتب والرسل", c: "الكتب كالقرآن والإنجيل. والرسل أولهم نوح وآخرهم محمد ﷺ." }
             ],
             questions: [
-                { q: "كم عدد أركان الإيمان؟", opts: ["4", "5", "6", "7"], a: 2 },
-                { q: "الملائكة مخلوقون من:", opts: ["طين", "نار", "نور", "ماء"], a: 2 },
-                { q: "الكتاب الذي أنزل على سيدنا عيسى هو:", opts: ["القرآن", "التوراة", "الإنجيل", "الزبور"], a: 2 },
-                { q: "الإيمان بالقدر يعني:", opts: ["أن الله لا يعلم الغيب", "أن الإنسان يخلق فعله", "أن كل شيء بقضاء الله وعلمه", "الصدفة"], a: 2 },
-                { q: "اليوم الآخر هو يوم:", opts: ["الجمعة", "عرفة", "القيامة", "العيد"], a: 2 }
+                { q: "عدد أركان الإيمان:", opts: ["4", "5", "6", "7"], a: 2 },
+                { q: "خلق الله الملائكة من:", opts: ["نار", "نور", "طين"], a: 1 },
+                { q: "آخر الكتب السماوية:", opts: ["الإنجيل", "الزبور", "القرآن"], a: 2 }
             ]
         },
         {
             id: 3,
             title: "المرحلة 3: أولاد النبي ﷺ 🌸",
             study: [
-                { t: "عدد أولاد النبي (مقدمة)", c: "عددهم سبعة: 3 ذكور و 4 إناث. توفوا جميعاً في حياته إلا فاطمة." },
-                { t: "الأبناء الذكور 👦", c: "1. القاسم (مات صغيراً، وبه يكنى النبي).<br>2. عبد الله (لقب بالطاهر والطيب).<br>3. إبراهيم (أمه مارية القبطية، مات رضيعاً)." },
-                { t: "زينب ورقية (البنات الكبار) 👩", c: "زينب: الكبرى، زوجة أبي العاص، توفيت 8هـ.<br>رقية: زوجة عثمان بن عفان، هاجرت الهجرتين، توفيت يوم بدر." },
-                { t: "أم كلثوم وفاطمة (البنات الصغار) 👩", c: "أم كلثوم: تزوجها عثمان بعد رقية (لذلك سمي ذي النورين).<br>فاطمة: الزهراء، زوجة علي بن أبي طالب، أم الحسن والحسين، توفيت بعد النبي بـ 6 أشهر." }
+                { t: "عددهم وأسماؤهم", c: "عددهم 7 (3 ذكور و 4 إناث). الذكور: القاسم، عبدالله، إبراهيم. الإناث: زينب، رقية، أم كلثوم، فاطمة." },
+                { t: "وفاتهم", c: "ماتوا جميعاً في حياته إلا فاطمة توفيت بعده بـ 6 أشهر." }
             ],
             questions: [
-                { q: "كم عدد أولاد النبي ﷺ (ذكور وإناث)؟", opts: ["3", "5", "7", "9"], a: 2 },
-                { q: "من هي البنت التي توفيت بعد النبي ﷺ؟", opts: ["زينب", "رقية", "فاطمة", "أم كلثوم"], a: 2 },
-                { q: "من هو ابن النبي الذي أمه مارية القبطية؟", opts: ["القاسم", "إبراهيم", "عبد الله", "الحسن"], a: 1 },
-                { q: "لقب عثمان بن عفان بـ (ذي النورين) لزواجه من:", opts: ["زينب وفاطمة", "رقية وأم كلثوم", "خديجة وعائشة", "حفصة وصفية"], a: 1 },
-                { q: "أول أبناء النبي وبه كان يُكنى:", opts: ["إبراهيم", "عبد الله", "القاسم", "علي"], a: 2 }
+                { q: "عدد أولاد النبي ﷺ:", opts: ["5", "6", "7"], a: 2 },
+                { q: "من التي توفيت بعد النبي؟", opts: ["زينب", "فاطمة", "رقية"], a: 1 },
+                { q: "ابن النبي من مارية القبطية:", opts: ["القاسم", "إبراهيم", "عبدالله"], a: 1 }
             ]
         }
     ];
 
     // ====================================================
-    // 🎮 منطق اللعبة (Logic)
+    // 🎮 منطق اللعبة
     // ====================================================
     
-    // متغيرات الحالة
     let state = {
         user: "",
         deviceId: localStorage.getItem('islamicGame_id') || 'u_' + Date.now(),
         score: parseInt(localStorage.getItem('islamicGame_score')) || 0,
-        unlockedLevel: parseInt(localStorage.getItem('islamicGame_level')) || 1, // 1 means level 1 is open
-        currentPlayingLevel: 0, // index 0 = Level 1
+        unlockedLevel: parseInt(localStorage.getItem('islamicGame_unlocked')) || 1, // رقم آخر مرحلة مفتوحة
+        completedLevels: JSON.parse(localStorage.getItem('islamicGame_completed')) || [], // المراحل التي تم حلها
+        currentPlayingLevel: 0, 
         qIndex: 0,
         mistakes: 0
     };
+    
+    let studyTimer = null; // متغير للتحكم في وقت المذاكرة
 
     if(!localStorage.getItem('islamicGame_id')) localStorage.setItem('islamicGame_id', state.deviceId);
 
-    // واجهة المستخدم
+    // دوال مساعدة
     window.showScreen = (id) => {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById(id).classList.add('active-screen');
@@ -308,11 +310,15 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
         const name = document.getElementById('username').value.trim();
         if(!name) return alert("اكتب اسمك الأول من فضلك");
         state.user = name;
-        document.getElementById('welcome-msg').innerText = `أهلاً ${state.user} 👋`;
-        document.getElementById('score-display').innerText = `نقاطك: ${state.score}`;
+        updateUI();
         renderDashboard();
         showScreen('dashboard-screen');
         syncFirebase();
+    };
+
+    window.updateUI = () => {
+        document.getElementById('welcome-msg').innerText = `أهلاً ${state.user} 👋`;
+        document.getElementById('score-display').innerText = `نقاطك: ${state.score}`;
     };
 
     window.renderDashboard = () => {
@@ -320,11 +326,16 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
         container.innerHTML = "";
 
         gameLevels.forEach((level, index) => {
+            // المرحلة مفتوحة إذا كان ترتيبها أقل من أو يساوي المرحلة المفتوحة حالياً
             const isLocked = (index + 1) > state.unlockedLevel;
+            const isCompleted = state.completedLevels.includes(level.id);
+            
             const card = document.createElement('div');
-            card.className = `level-card ${isLocked ? 'locked' : ''}`;
+            card.className = `level-card ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''}`;
             
             let btnsHtml = "";
+            let badge = isCompleted ? "<span style='color:green; float:left'>✔ تم الحل</span>" : "";
+
             if(isLocked) {
                 btnsHtml = `<button disabled>مغلق 🔒</button>`;
             } else {
@@ -335,14 +346,14 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
             }
 
             card.innerHTML = `
-                <span class="level-title">${level.title}</span>
+                <span class="level-title">${level.title} ${badge}</span>
                 ${btnsHtml}
             `;
             container.appendChild(card);
         });
     };
 
-    // --- المذاكرة ---
+    // --- المذاكرة وتجميع النقاط ---
     window.openStudy = (lvlIndex) => {
         const lvl = gameLevels[lvlIndex];
         state.currentPlayingLevel = lvlIndex;
@@ -358,18 +369,53 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
             const pnl = document.createElement('div');
             pnl.className = "panel";
             pnl.innerHTML = `<p>${item.c}</p>`;
-            
             btn.onclick = function() {
                 this.classList.toggle("active");
                 if (pnl.style.maxHeight) pnl.style.maxHeight = null;
                 else pnl.style.maxHeight = pnl.scrollHeight + "px";
             };
-            
             contentDiv.appendChild(btn);
             contentDiv.appendChild(pnl);
         });
+        
         showScreen('study-screen');
+        startStudyTimer(); // ⏳ ابدأ عداد النقاط
     };
+
+    function startStudyTimer() {
+        if(studyTimer) clearInterval(studyTimer);
+        // كل 60 ثانية (60000 ميلي ثانية) تزيد نقطة
+        studyTimer = setInterval(() => {
+            state.score += 1;
+            saveProgress();
+            updateUI();
+            showToast("✨ +1 نقطة (مكافأة مذاكرة)");
+        }, 60000); 
+    }
+
+    function stopStudyTimer() {
+        if(studyTimer) {
+            clearInterval(studyTimer);
+            studyTimer = null;
+        }
+    }
+
+    window.exitStudy = () => {
+        stopStudyTimer();
+        showScreen('dashboard-screen');
+    };
+
+    window.goToQuizFromStudy = () => {
+        stopStudyTimer(); // أوقف عداد المذاكرة
+        initQuiz(state.currentPlayingLevel); // ابدأ الاختبار الحالي
+    };
+
+    function showToast(msg) {
+        const t = document.getElementById('points-toast');
+        t.innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
 
     // --- الاختبار ---
     window.initQuiz = (lvlIndex) => {
@@ -407,7 +453,12 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
 
     function checkAnswer(selected, correct) {
         if (selected === correct) {
-            state.score += 10;
+            // ✅ المنطق الجديد: زيادة النقاط فقط إذا لم تكن المرحلة محلولة سابقاً
+            const currentLevelID = gameLevels[state.currentPlayingLevel].id;
+            if (!state.completedLevels.includes(currentLevelID)) {
+                state.score += 10;
+            }
+            
             state.qIndex++;
             loadQuestion();
         } else {
@@ -417,25 +468,40 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
                 document.getElementById('quiz-alert').style.display = 'block';
                 setTimeout(() => {
                     alert("للأسف، تجاوزت حد الأخطاء. عد للمذاكرة!");
-                    openStudy(state.currentPlayingLevel);
+                    openStudy(state.currentPlayingLevel); // يعيدك للمذاكرة
                 }, 1000);
             } else {
                 alert("❌ إجابة خاطئة! بقي لك محاولة واحدة.");
             }
         }
-        document.getElementById('score-display').innerText = `نقاطك: ${state.score}`;
+        updateUI();
         saveProgress();
     }
 
     function handleWin() {
-        const nextLvl = state.currentPlayingLevel + 2; // +1 for next index, +1 because level id starts at 1
-        if (nextLvl > state.unlockedLevel) {
-            state.unlockedLevel = nextLvl - 1; // Unlock next
+        const currentLvlObj = gameLevels[state.currentPlayingLevel];
+        
+        // تسجيل أن المرحلة تم حلها
+        if(!state.completedLevels.includes(currentLvlObj.id)){
+            state.completedLevels.push(currentLvlObj.id);
+        }
+
+        // فتح المرحلة التالية
+        const nextLvlId = currentLvlObj.id + 1;
+        if (nextLvlId > state.unlockedLevel) {
+            state.unlockedLevel = nextLvlId;
         }
         
         document.getElementById('result-emoji').innerText = "🎉";
         document.getElementById('result-title').innerText = "مبــروك!";
-        document.getElementById('result-msg').innerText = `أحسنت يا ${state.user}! أتممت المرحلة بنجاح.`;
+        
+        // رسالة مختلفة إذا كان يعيد الحل
+        if(state.completedLevels.includes(currentLvlObj.id) && state.score === parseInt(localStorage.getItem('islamicGame_score'))) {
+             document.getElementById('result-msg').innerText = `أحسنت! راجعت معلوماتك بنجاح (لا نقاط إضافية للتكرار).`;
+        } else {
+             document.getElementById('result-msg').innerText = `أحسنت يا ${state.user}! تم فتح المرحلة التالية.`;
+        }
+
         showScreen('result-screen');
         saveProgress();
         renderDashboard();
@@ -444,7 +510,8 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
     // --- الحفظ وقاعدة البيانات ---
     function saveProgress() {
         localStorage.setItem('islamicGame_score', state.score);
-        localStorage.setItem('islamicGame_level', state.unlockedLevel);
+        localStorage.setItem('islamicGame_unlocked', state.unlockedLevel);
+        localStorage.setItem('islamicGame_completed', JSON.stringify(state.completedLevels));
         syncFirebase();
     }
 
@@ -464,7 +531,7 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
         tbody.innerHTML = "<tr><td colspan='3'>جاري التحميل...</td></tr>";
         
         if(!db) {
-            tbody.innerHTML = "<tr><td colspan='3'>الخدمة غير متوفرة حالياً</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='3'>تأكد من إعداد Firebase</td></tr>";
             return;
         }
 
@@ -478,7 +545,7 @@ appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
             
             Object.values(data)
                 .sort((a,b) => b.score - a.score)
-                .slice(0, 10) // أفضل 10 فقط
+                .slice(0, 10)
                 .forEach((u, i) => {
                     tbody.innerHTML += `
                         <tr>
