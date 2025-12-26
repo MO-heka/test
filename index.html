@@ -3,221 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مسابقة نور الإسلام 🌙</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <title>لعبة ديسكيت - Dixit Online</title>
     <style>
-        :root {
-            --primary-color: #2e7d32;
-            --secondary-color: #e8f5e9;
-            --locked-color: #cfd8dc;
-            --text-color: #333;
-            --white: #fff;
-        }
-
-        body {
-            font-family: 'Tajawal', sans-serif;
-            background-color: var(--secondary-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-            user-select: none; /* لمنع النسخ السريع للنصوص */
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: var(--white);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            min-height: 80vh;
-            position: relative;
-        }
-
-        h1, h2, h3 { color: var(--primary-color); }
-
-        button {
-            background-color: var(--primary-color);
-            color: var(--white);
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin: 8px;
-            transition: 0.3s;
-            font-family: 'Tajawal', sans-serif;
-        }
-
-        button:hover { filter: brightness(0.9); transform: scale(1.02); }
-        button:disabled { background-color: var(--locked-color); cursor: not-allowed; transform: none; color: #777;}
-        button.secondary { background-color: #546e7a; }
+        /* --- تنسيقات CSS --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #2c3e50; color: white; text-align: center; margin: 0; padding: 20px; }
         
-        button.option-btn { 
-            width: 100%; 
-            display: block; 
-            margin: 10px 0; 
-            text-align: right; 
-            padding-right: 20px; 
-            border: 1px solid #ddd; 
-            background: #fff; 
-            color: #333; 
-        }
-        button.option-btn:hover { background: #e8f5e9; }
-
-        input {
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            width: 70%;
-            font-family: 'Tajawal', sans-serif;
-            text-align: center;
-            font-size: 16px;
-        }
-
-        /* Screens Logic */
-        .screen { display: none; animation: fadeIn 0.4s; }
-        .active-screen { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Accordion */
-        .accordion {
-            background-color: #f1f8e9;
-            color: #2e7d32;
-            cursor: pointer;
-            padding: 15px;
-            width: 100%;
-            text-align: right;
-            border: none;
-            outline: none;
-            transition: 0.4s;
-            margin-top: 8px;
-            border-radius: 8px;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-        }
-        .panel {
-            padding: 0 15px;
-            background-color: white;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-            text-align: right;
-            border-right: 4px solid var(--primary-color);
-            margin-bottom: 5px;
-        }
-
-        /* Level Cards */
-        .level-card {
-            border: 1px solid #eee;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: #fff;
-            position: relative;
-        }
-        .level-card.locked { opacity: 0.7; background: #f9f9f9; }
-        .level-card.completed { border: 2px solid #a5d6a7; }
+        h1 { color: #f1c40f; }
         
-        .alert { padding: 15px; background-color: #ffebee; color: #c62828; border-radius: 8px; display: none; margin: 10px 0; border: 1px solid #ef9a9a;}
+        /* شاشات اللعبة */
+        #login-screen, #game-screen { display: none; }
+        .active { display: block !important; }
 
-        /* Toast Notification for Points */
-        .toast {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #ffca28;
-            color: #333;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-weight: bold;
-            opacity: 0;
-            transition: opacity 0.5s;
-            pointer-events: none;
-            z-index: 100;
-        }
-        .toast.show { opacity: 1; }
+        /* الأزرار والمدخلات */
+        input { padding: 10px; font-size: 16px; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; font-size: 16px; background-color: #e67e22; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #d35400; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; }
-        th { background-color: var(--primary-color); color: white; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        /* منطقة الكروت */
+        .cards-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
+        .card { width: 150px; height: 220px; border-radius: 10px; overflow: hidden; border: 3px solid transparent; cursor: pointer; transition: transform 0.2s; background: #fff; }
+        .card img { width: 100%; height: 100%; object-fit: cover; }
+        .card:hover { transform: scale(1.05); }
+        .card.selected { border-color: #2ecc71; transform: scale(1.1); box-shadow: 0 0 15px #2ecc71; }
+
+        /* منطقة الحالة */
+        #status-bar { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .role-tag { font-weight: bold; color: #f39c12; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="points-toast" class="toast">✨ +1 نقطة مذاكرة</div>
+    <h1>🎭 Dixit Odyssey 🎭</h1>
 
-    <div id="login-screen" class="screen active-screen">
-        <h1>🌙 مسابقة نور الإسلام</h1>
-        <div style="margin: 30px 0;">
-            <input type="text" id="username" placeholder="اكتب اسمك هنا..." autocomplete="off">
+    <div id="login-screen" class="active">
+        <h3>أدخل اسمك للانضمام</h3>
+        <input type="text" id="username" placeholder="اسم اللاعب">
+        <button onclick="joinGame()">دخول اللعبة</button>
+    </div>
+
+    <div id="game-screen">
+        <div id="status-bar">
+            <p>مرحباً <span id="player-name-display"></span> | أنت: <span id="player-role" class="role-tag">انتظر...</span></p>
+            <h2 id="game-instruction">جاري تحميل الحالة...</h2>
+            <div id="clue-display" style="display:none; font-size: 1.2em; color: #add8e6;"></div>
         </div>
-        <button onclick="loginUser()">ابدأ الرحلة 🚀</button>
-    </div>
 
-    <div id="dashboard-screen" class="screen">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 id="welcome-msg"></h3>
-            <span id="score-display" style="background:#fff3e0; padding:5px 10px; border-radius:15px; font-weight:bold;">نقاطك: 0</span>
+        <div id="storyteller-area" style="display:none;">
+            <input type="text" id="clue-input" placeholder="اكتب وصفاً للكارت المختار...">
+            <button onclick="submitClue()">تأكيد الوصف والكارت</button>
         </div>
-        <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
-        
-        <div id="levels-container"></div>
-        <button class="secondary" onclick="showLeaderboard()">🏆 لوحة الصدارة</button>
-    </div>
 
-    <div id="study-screen" class="screen">
-        <h2 id="study-title"></h2>
-        <p style="font-size:0.8em; color:#2e7d32;">💡 نصيحة: ستحصل على نقاط إضافية لكل دقيقة مذاكرة!</p>
-        <div id="study-content-area"></div>
-        <br>
-        <div style="display:flex; justify-content:space-between;">
-            <button class="secondary" onclick="exitStudy()">عودة 🔙</button>
-            <button onclick="goToQuizFromStudy()">جاهز للاختبار ✅</button>
+        <div id="table-area" style="display:none;">
+            <h3>الكروت على الطاولة (اختر الكارت الصحيح)</h3>
+            <div id="table-cards" class="cards-container"></div>
+            <button onclick="submitVote()" id="vote-btn" style="display:none;">تأكيد التصويت</button>
+        </div>
+
+        <div id="hand-area">
+            <h3>كروتك</h3>
+            <div id="my-hand" class="cards-container"></div>
+            <button onclick="playCard()" id="play-card-btn" style="display:none;">العب الكارت المحدد</button>
         </div>
     </div>
 
-    <div id="quiz-screen" class="screen">
-        <h2 id="quiz-title"></h2>
-        <div class="alert" id="quiz-alert"></div>
-        <div style="background:#fafafa; padding:20px; border-radius:10px; margin-top:20px;">
-            <h3 id="question-text" style="color:#444;"></h3>
-            <div id="options-container"></div>
-        </div>
-        <p id="progress-text" style="margin-top:20px; color:#888;"></p>
-    </div>
+    <script type="module">
+        // استيراد مكتبات Firebase (تأكد من استخدام النسخة الحديثة)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, arrayUnion, getDoc } 
+        from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    <div id="result-screen" class="screen">
-        <h1 id="result-emoji" style="font-size: 3em;"></h1>
-        <h2 id="result-title"></h2>
-        <p id="result-msg"></p>
-        <button onclick="showScreen('dashboard-screen')">القائمة الرئيسية 🏠</button>
-    </div>
-
-    <div id="leaderboard-screen" class="screen">
-        <h2>🏆 المتصدرون</h2>
-        <table id="leaderboard-table">
-            <thead><tr><th>#</th><th>الاسم</th><th>النقاط</th></tr></thead>
-            <tbody></tbody>
-        </table>
-        <br>
-        <button onclick="showScreen('dashboard-screen')">عودة 🔙</button>
-    </div>
-
-</div>
-
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
-
-    // ⛔ استبدل هذا الجزء ببياناتك الحقيقية من فايربيس
-    const firebaseConfig = {
-       apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
+        // ⚠️ هام: استبدل هذا الجزء بإعدادات مشروعك من Firebase Console
+        const firebaseConfig = {
+        apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
 authDomain: "heka-codenames.firebaseapp.com",
 databaseURL: "https://heka-codenames-default-rtdb.firebaseio.com",
 projectId: "heka-codenames",
@@ -225,339 +82,232 @@ storageBucket: "heka-codenames.firebasestorage.app",
 messagingSenderId: "901713932504",
 appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
 
-    };
+        };
 
-    let db;
-    try {
+        // تهيئة Firebase
         const app = initializeApp(firebaseConfig);
-        db = getDatabase(app);
-    } catch(e) { console.log("Firebase config missing or error"); }
+        const db = getFirestore(app);
+        const ROOM_ID = "dixit_room_1"; // سنستخدم غرفة واحدة للتبسيط
 
-    // ====================================================
-    // 📂 بيانات المراحل
-    // ====================================================
-    
-    const gameLevels = [
-        {
-            id: 1,
-            title: "المرحلة 1: أركان الإسلام 🕌",
-            study: [
-                { t: "أركان الإسلام الخمسة", c: "بني الإسلام على خمس: شهادة أن لا إله إلا الله، وإقام الصلاة، وإيتاء الزكاة، وصوم رمضان، وحج البيت." },
-                { t: "الشهادتان والصلاة", c: "الشهادتان مفتاح الإسلام. والصلاة عمود الدين وهي خمس صلوات في اليوم والليلة." },
-                { t: "الزكاة والصوم والحج", c: "الزكاة حق المال. والصوم في رمضان. والحج مرة في العمر لمن استطاع." }
-            ],
-            questions: [
-                { q: "ما هو الركن الأول من أركان الإسلام؟", opts: ["الصلاة", "الشهادتان", "الحج", "الزكاة"], a: 1 },
-                { q: "كم عدد الصلوات المفروضة؟", opts: ["3", "4", "5", "6"], a: 2 },
-                { q: "الحج واجب:", opts: ["كل سنة", "مرة في العمر", "كل 5 سنوات"], a: 1 }
-            ]
-        },
-        {
-            id: 2,
-            title: "المرحلة 2: أركان الإيمان ❤️",
-            study: [
-                { t: "أركان الإيمان الستة", c: "أن تؤمن بالله، وملائكته، وكتبه، ورسله، واليوم الآخر، والقدر خيره وشره." },
-                { t: "الإيمان بالله والملائكة", c: "التصديق بوجود الله ووحدانيته. والملائكة خلق من نور لا يعصون الله." },
-                { t: "الكتب والرسل", c: "الكتب كالقرآن والإنجيل. والرسل أولهم نوح وآخرهم محمد ﷺ." }
-            ],
-            questions: [
-                { q: "عدد أركان الإيمان:", opts: ["4", "5", "6", "7"], a: 2 },
-                { q: "خلق الله الملائكة من:", opts: ["نار", "نور", "طين"], a: 1 },
-                { q: "آخر الكتب السماوية:", opts: ["الإنجيل", "الزبور", "القرآن"], a: 2 }
-            ]
-        },
-        {
-            id: 3,
-            title: "المرحلة 3: أولاد النبي ﷺ 🌸",
-            study: [
-                { t: "عددهم وأسماؤهم", c: "عددهم 7 (3 ذكور و 4 إناث). الذكور: القاسم، عبدالله، إبراهيم. الإناث: زينب، رقية، أم كلثوم، فاطمة." },
-                { t: "وفاتهم", c: "ماتوا جميعاً في حياته إلا فاطمة توفيت بعده بـ 6 أشهر." }
-            ],
-            questions: [
-                { q: "عدد أولاد النبي ﷺ:", opts: ["5", "6", "7"], a: 2 },
-                { q: "من التي توفيت بعد النبي؟", opts: ["زينب", "فاطمة", "رقية"], a: 1 },
-                { q: "ابن النبي من مارية القبطية:", opts: ["القاسم", "إبراهيم", "عبدالله"], a: 1 }
-            ]
-        }
-    ];
+        // متغيرات اللعبة المحلية
+        let myName = "";
+        let myCards = [];
+        let selectedCard = null;
+        let currentGameState = {};
 
-    // ====================================================
-    // 🎮 منطق اللعبة
-    // ====================================================
-    
-    let state = {
-        user: "",
-        deviceId: localStorage.getItem('islamicGame_id') || 'u_' + Date.now(),
-        score: parseInt(localStorage.getItem('islamicGame_score')) || 0,
-        unlockedLevel: parseInt(localStorage.getItem('islamicGame_unlocked')) || 1, // رقم آخر مرحلة مفتوحة
-        completedLevels: JSON.parse(localStorage.getItem('islamicGame_completed')) || [], // المراحل التي تم حلها
-        currentPlayingLevel: 0, 
-        qIndex: 0,
-        mistakes: 0
-    };
-    
-    let studyTimer = null; // متغير للتحكم في وقت المذاكرة
+        // قائمة صور تجريبية (صور عشوائية من Unsplash)
+        const imageDeck = Array.from({length: 30}, (_, i) => `https://picsum.photos/300/400?random=${i}`);
 
-    if(!localStorage.getItem('islamicGame_id')) localStorage.setItem('islamicGame_id', state.deviceId);
-
-    // دوال مساعدة
-    window.showScreen = (id) => {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-        document.getElementById(id).classList.add('active-screen');
-    };
-
-    window.loginUser = () => {
-        const name = document.getElementById('username').value.trim();
-        if(!name) return alert("اكتب اسمك الأول من فضلك");
-        state.user = name;
-        updateUI();
-        renderDashboard();
-        showScreen('dashboard-screen');
-        syncFirebase();
-    };
-
-    window.updateUI = () => {
-        document.getElementById('welcome-msg').innerText = `أهلاً ${state.user} 👋`;
-        document.getElementById('score-display').innerText = `نقاطك: ${state.score}`;
-    };
-
-    window.renderDashboard = () => {
-        const container = document.getElementById('levels-container');
-        container.innerHTML = "";
-
-        gameLevels.forEach((level, index) => {
-            // المرحلة مفتوحة إذا كان ترتيبها أقل من أو يساوي المرحلة المفتوحة حالياً
-            const isLocked = (index + 1) > state.unlockedLevel;
-            const isCompleted = state.completedLevels.includes(level.id);
+        // 1. وظيفة الانضمام للعبة
+        window.joinGame = async () => {
+            const inputName = document.getElementById("username").value;
+            if (!inputName) return alert("الرجاء كتابة الاسم");
             
-            const card = document.createElement('div');
-            card.className = `level-card ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''}`;
-            
-            let btnsHtml = "";
-            let badge = isCompleted ? "<span style='color:green; float:left'>✔ تم الحل</span>" : "";
+            myName = inputName;
+            document.getElementById("player-name-display").innerText = myName;
+            document.getElementById("login-screen").classList.remove("active");
+            document.getElementById("game-screen").classList.add("active");
 
-            if(isLocked) {
-                btnsHtml = `<button disabled>مغلق 🔒</button>`;
-            } else {
-                btnsHtml = `
-                    <button onclick="openStudy(${index})">📖 مذاكرة</button>
-                    <button onclick="initQuiz(${index})">📝 اختبار</button>
-                `;
-            }
+            // التعامل مع قاعدة البيانات
+            const roomRef = doc(db, "games", ROOM_ID);
+            const roomSnap = await getDoc(roomRef);
 
-            card.innerHTML = `
-                <span class="level-title">${level.title} ${badge}</span>
-                ${btnsHtml}
-            `;
-            container.appendChild(card);
-        });
-    };
-
-    // --- المذاكرة وتجميع النقاط ---
-    window.openStudy = (lvlIndex) => {
-        const lvl = gameLevels[lvlIndex];
-        state.currentPlayingLevel = lvlIndex;
-        document.getElementById('study-title').innerText = lvl.title;
-        
-        const contentDiv = document.getElementById('study-content-area');
-        contentDiv.innerHTML = "";
-        
-        lvl.study.forEach(item => {
-            const btn = document.createElement('button');
-            btn.className = "accordion";
-            btn.innerText = item.t;
-            const pnl = document.createElement('div');
-            pnl.className = "panel";
-            pnl.innerHTML = `<p>${item.c}</p>`;
-            btn.onclick = function() {
-                this.classList.toggle("active");
-                if (pnl.style.maxHeight) pnl.style.maxHeight = null;
-                else pnl.style.maxHeight = pnl.scrollHeight + "px";
-            };
-            contentDiv.appendChild(btn);
-            contentDiv.appendChild(pnl);
-        });
-        
-        showScreen('study-screen');
-        startStudyTimer(); // ⏳ ابدأ عداد النقاط
-    };
-
-    function startStudyTimer() {
-        if(studyTimer) clearInterval(studyTimer);
-        // كل 60 ثانية (60000 ميلي ثانية) تزيد نقطة
-        studyTimer = setInterval(() => {
-            state.score += 1;
-            saveProgress();
-            updateUI();
-            showToast("✨ +1 نقطة (مكافأة مذاكرة)");
-        }, 60000); 
-    }
-
-    function stopStudyTimer() {
-        if(studyTimer) {
-            clearInterval(studyTimer);
-            studyTimer = null;
-        }
-    }
-
-    window.exitStudy = () => {
-        stopStudyTimer();
-        showScreen('dashboard-screen');
-    };
-
-    window.goToQuizFromStudy = () => {
-        stopStudyTimer(); // أوقف عداد المذاكرة
-        initQuiz(state.currentPlayingLevel); // ابدأ الاختبار الحالي
-    };
-
-    function showToast(msg) {
-        const t = document.getElementById('points-toast');
-        t.innerText = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 3000);
-    }
-
-    // --- الاختبار ---
-    window.initQuiz = (lvlIndex) => {
-        state.currentPlayingLevel = lvlIndex;
-        state.qIndex = 0;
-        state.mistakes = 0;
-        document.getElementById('quiz-title').innerText = gameLevels[lvlIndex].title;
-        document.getElementById('quiz-alert').style.display = 'none';
-        showScreen('quiz-screen');
-        loadQuestion();
-    };
-
-    function loadQuestion() {
-        const lvl = gameLevels[state.currentPlayingLevel];
-        if (state.qIndex >= lvl.questions.length) {
-            handleWin();
-            return;
-        }
-
-        const q = lvl.questions[state.qIndex];
-        document.getElementById('question-text').innerText = `س ${state.qIndex+1}: ${q.q}`;
-        document.getElementById('progress-text').innerText = `السؤال ${state.qIndex+1} من ${lvl.questions.length}`;
-
-        const optsDiv = document.getElementById('options-container');
-        optsDiv.innerHTML = "";
-        
-        q.opts.forEach((opt, idx) => {
-            const btn = document.createElement('button');
-            btn.className = "option-btn";
-            btn.innerText = opt;
-            btn.onclick = () => checkAnswer(idx, q.a);
-            optsDiv.appendChild(btn);
-        });
-    }
-
-    function checkAnswer(selected, correct) {
-        if (selected === correct) {
-            // ✅ المنطق الجديد: زيادة النقاط فقط إذا لم تكن المرحلة محلولة سابقاً
-            const currentLevelID = gameLevels[state.currentPlayingLevel].id;
-            if (!state.completedLevels.includes(currentLevelID)) {
-                state.score += 10;
-            }
-            
-            state.qIndex++;
-            loadQuestion();
-        } else {
-            state.mistakes++;
-            if (state.mistakes >= 2) {
-                document.getElementById('quiz-alert').innerText = "⚠️ خطأ ثانٍ! يجب أن تعود للمذاكرة.";
-                document.getElementById('quiz-alert').style.display = 'block';
-                setTimeout(() => {
-                    alert("للأسف، تجاوزت حد الأخطاء. عد للمذاكرة!");
-                    openStudy(state.currentPlayingLevel); // يعيدك للمذاكرة
-                }, 1000);
-            } else {
-                alert("❌ إجابة خاطئة! بقي لك محاولة واحدة.");
-            }
-        }
-        updateUI();
-        saveProgress();
-    }
-
-    function handleWin() {
-        const currentLvlObj = gameLevels[state.currentPlayingLevel];
-        
-        // تسجيل أن المرحلة تم حلها
-        if(!state.completedLevels.includes(currentLvlObj.id)){
-            state.completedLevels.push(currentLvlObj.id);
-        }
-
-        // فتح المرحلة التالية
-        const nextLvlId = currentLvlObj.id + 1;
-        if (nextLvlId > state.unlockedLevel) {
-            state.unlockedLevel = nextLvlId;
-        }
-        
-        document.getElementById('result-emoji').innerText = "🎉";
-        document.getElementById('result-title').innerText = "مبــروك!";
-        
-        // رسالة مختلفة إذا كان يعيد الحل
-        if(state.completedLevels.includes(currentLvlObj.id) && state.score === parseInt(localStorage.getItem('islamicGame_score'))) {
-             document.getElementById('result-msg').innerText = `أحسنت! راجعت معلوماتك بنجاح (لا نقاط إضافية للتكرار).`;
-        } else {
-             document.getElementById('result-msg').innerText = `أحسنت يا ${state.user}! تم فتح المرحلة التالية.`;
-        }
-
-        showScreen('result-screen');
-        saveProgress();
-        renderDashboard();
-    }
-
-    // --- الحفظ وقاعدة البيانات ---
-    function saveProgress() {
-        localStorage.setItem('islamicGame_score', state.score);
-        localStorage.setItem('islamicGame_unlocked', state.unlockedLevel);
-        localStorage.setItem('islamicGame_completed', JSON.stringify(state.completedLevels));
-        syncFirebase();
-    }
-
-    function syncFirebase() {
-        if(!db || !state.user) return;
-        update(ref(db, 'users/' + state.deviceId), {
-            name: state.user,
-            score: state.score,
-            level: state.unlockedLevel,
-            lastActive: new Date().toISOString()
-        });
-    }
-
-    window.showLeaderboard = () => {
-        showScreen('leaderboard-screen');
-        const tbody = document.querySelector('#leaderboard-table tbody');
-        tbody.innerHTML = "<tr><td colspan='3'>جاري التحميل...</td></tr>";
-        
-        if(!db) {
-            tbody.innerHTML = "<tr><td colspan='3'>تأكد من إعداد Firebase</td></tr>";
-            return;
-        }
-
-        onValue(ref(db, 'users'), (snapshot) => {
-            tbody.innerHTML = "";
-            const data = snapshot.val();
-            if(!data) {
-                tbody.innerHTML = "<tr><td colspan='3'>لا يوجد بيانات</td></tr>";
-                return;
-            }
-            
-            Object.values(data)
-                .sort((a,b) => b.score - a.score)
-                .slice(0, 10)
-                .forEach((u, i) => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${i+1} ${i==0?'👑':''}</td>
-                            <td>${u.name}</td>
-                            <td>${u.score}</td>
-                        </tr>
-                    `;
+            if (!roomSnap.exists()) {
+                // إنشاء الغرفة إذا لم تكن موجودة (أول لاعب)
+                await setDoc(roomRef, {
+                    players: [myName],
+                    storyteller: myName, // الأول هو الحكواتي
+                    phase: "waiting", // waiting, clue, playing, voting
+                    clue: "",
+                    tableCards: [], // {player: name, img: url}
+                    votes: {},
+                    deckIndex: 0
                 });
-        });
-    };
-</script>
+            } else {
+                // إضافة اللاعب للقائمة
+                await updateDoc(roomRef, {
+                    players: arrayUnion(myName)
+                });
+            }
 
+            // توزيع كروت مبدئية للاعب (محاكاة)
+            dealCards();
+            
+            // الاستماع للتغييرات في قاعدة البيانات (Real-time Listener)
+            listenToGame();
+        };
+
+        function dealCards() {
+            // في اللعبة الحقيقية يجب سحب الكروت من الديك المشترك، هنا سنعطي كروت عشوائية للتبسيط
+            myCards = [];
+            for(let i=0; i<6; i++) {
+                myCards.push(imageDeck[Math.floor(Math.random() * imageDeck.length)]);
+            }
+            renderHand();
+        }
+
+        // 2. الاستماع اللحظي لحالة اللعبة
+        function listenToGame() {
+            onSnapshot(doc(db, "games", ROOM_ID), (doc) => {
+                currentGameState = doc.data();
+                updateUI();
+            });
+        }
+
+        // 3. تحديث الواجهة بناءً على الحالة
+        function updateUI() {
+            const isStoryteller = currentGameState.storyteller === myName;
+            const phase = currentGameState.phase;
+            const instruction = document.getElementById("game-instruction");
+            const roleEl = document.getElementById("player-role");
+            
+            roleEl.innerText = isStoryteller ? "الحكواتي 🎩" : "لاعب مشارك 🕵️";
+
+            // إخفاء/إظهار العناصر حسب المرحلة
+            document.getElementById("storyteller-area").style.display = "none";
+            document.getElementById("table-area").style.display = "none";
+            document.getElementById("play-card-btn").style.display = "none";
+            document.getElementById("clue-display").style.display = "none";
+
+            if (phase === "waiting") {
+                instruction.innerText = `في انتظار اللاعبين... (العدد: ${currentGameState.players.length})`;
+                if (isStoryteller && currentGameState.players.length >= 2) { 
+                    // زر لبدء اللعبة (يمكن إضافته) لكن سننتقل تلقائياً للتجربة
+                   startGamePhase();
+                }
+            } 
+            else if (phase === "clue") {
+                if (isStoryteller) {
+                    instruction.innerText = "اختر كارتاً واكتب وصفاً له!";
+                    document.getElementById("storyteller-area").style.display = "block";
+                } else {
+                    instruction.innerText = `الحكواتي ${currentGameState.storyteller} يفكر في وصف...`;
+                }
+            }
+            else if (phase === "playing") {
+                document.getElementById("clue-display").innerText = `الوصف: "${currentGameState.clue}"`;
+                document.getElementById("clue-display").style.display = "block";
+                
+                if (isStoryteller) {
+                     instruction.innerText = "اللاعبون يختارون كروتهم...";
+                } else {
+                    // هل لعبت ورقتي بالفعل؟
+                    const played = currentGameState.tableCards.find(c => c.player === myName);
+                    if (!played) {
+                        instruction.innerText = "اختر كارتاً من يدك يناسب الوصف!";
+                        document.getElementById("play-card-btn").style.display = "inline-block";
+                    } else {
+                        instruction.innerText = "تم اختيار كارتك، في انتظار البقية...";
+                    }
+                }
+            }
+            else if (phase === "voting") {
+                instruction.innerText = "صوّت للكارت الذي تعتقد أنه للحكواتي!";
+                document.getElementById("table-area").style.display = "block";
+                renderTableCards(); // عرض الكروت للتصويت
+                if (!isStoryteller) {
+                    document.getElementById("vote-btn").style.display = "inline-block";
+                }
+            }
+        }
+
+        // 4. وظائف التفاعل (Buttons Actions)
+
+        // رسم كروت اليد
+        function renderHand() {
+            const container = document.getElementById("my-hand");
+            container.innerHTML = "";
+            myCards.forEach(imgUrl => {
+                const div = document.createElement("div");
+                div.className = "card";
+                div.innerHTML = `<img src="${imgUrl}">`;
+                div.onclick = () => {
+                    document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
+                    div.classList.add("selected");
+                    selectedCard = imgUrl;
+                };
+                container.appendChild(div);
+            });
+        }
+
+        // الحكواتي يرسل الوصف والكارت
+        window.submitClue = async () => {
+            const clueText = document.getElementById("clue-input").value;
+            if (!selectedCard || !clueText) return alert("اختر كارت واكتب وصف");
+
+            await updateDoc(doc(db, "games", ROOM_ID), {
+                clue: clueText,
+                phase: "playing",
+                tableCards: arrayUnion({player: myName, img: selectedCard, type: 'storyteller'})
+            });
+            // إزالة الكارت من اليد محلياً
+            removeCardFromHand(selectedCard);
+        };
+
+        // تبديل المرحلة لبدء اللعب (مؤقت للتجربة)
+        async function startGamePhase() {
+           // في الواقع نحتاج زر "ابدأ اللعبة"
+           if(currentGameState.phase === 'waiting') {
+               await updateDoc(doc(db, "games", ROOM_ID), { phase: "clue" });
+           }
+        }
+
+        // اللاعب يرمي كارته
+        window.playCard = async () => {
+            if (!selectedCard) return alert("اختر كارت");
+            
+            await updateDoc(doc(db, "games", ROOM_ID), {
+                tableCards: arrayUnion({player: myName, img: selectedCard, type: 'player'})
+            });
+            removeCardFromHand(selectedCard);
+
+            // التحقق هل الجميع لعب؟ (بسيط)
+            // if tableCards.length == players.length -> move to voting
+            // هذا المنطق يفضل أن يكون في Cloud Functions لضمان الأمان، لكن يمكن عمله هنا
+            if (currentGameState.tableCards.length + 1 >= currentGameState.players.length) {
+                 await updateDoc(doc(db, "games", ROOM_ID), { phase: "voting" });
+            }
+        };
+
+        function removeCardFromHand(url) {
+            myCards = myCards.filter(c => c !== url);
+            renderHand();
+            selectedCard = null;
+        }
+
+        // عرض كروت الطاولة للتصويت
+        function renderTableCards() {
+            const container = document.getElementById("table-cards");
+            container.innerHTML = "";
+            // يجب خلط الكروت هنا حتى لا يعرف أحد كارت الحكواتي
+            // سنعرضها كما هي للتبسيط
+            currentGameState.tableCards.forEach(cardObj => {
+                const div = document.createElement("div");
+                div.className = "card";
+                div.innerHTML = `<img src="${cardObj.img}">`;
+                
+                // لا يمكنني التصويت لنفسي
+                if (cardObj.player !== myName) {
+                    div.onclick = () => {
+                        document.querySelectorAll("#table-cards .card").forEach(c => c.classList.remove("selected"));
+                        div.classList.add("selected");
+                        selectedCard = cardObj.player; // نصوت لاسم اللاعب صاحب الكارت
+                    };
+                } else {
+                    div.style.opacity = "0.5"; // كارتي أنا
+                    div.style.cursor = "default";
+                }
+                container.appendChild(div);
+            });
+        }
+
+        window.submitVote = async () => {
+            if(!selectedCard) return alert("من فضلك صوّت لكارت");
+            // إرسال التصويت...
+            alert("تم التصويت! (نهاية الجولة التجريبية)");
+            // هنا يتم تحديث Score والعودة لمرحلة clue مع حكواتي جديد
+        };
+
+    </script>
 </body>
 </html>
