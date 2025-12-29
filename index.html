@@ -153,24 +153,24 @@
 
         <div id="screen-menu" class="screen hidden">
             <h3 id="welcome-msg"></h3>
-            <button onclick="createRoom()" style="background:#10b981; width:80%">إنشاء غرفة</button>
+            <button onclick="creategame()" style="background:#10b981; width:80%">إنشاء غرفة</button>
             <br>
             <input type="text" id="code-input" placeholder="كود الغرفة" style="width:100px">
-            <button onclick="joinRoom()">دخول</button>
+            <button onclick="joingame()">دخول</button>
         </div>
 
         <div id="screen-lobby" class="screen hidden">
             <h2>غرفة: <span id="lobby-code" style="color:var(--gold)"></span></h2>
             <ul id="lobby-list" style="list-style:none; padding:0; text-align:right"></ul>
             <button id="start-btn" class="hidden" onclick="startGame()">ابدأ الجولة</button>
-            <button onclick="leaveRoom()" style="background:var(--danger)">خروج</button>
+            <button onclick="leavegame()" style="background:var(--danger)">خروج</button>
         </div>
 
         <div id="screen-game" class="hidden" style="width:100%; height:100%">
             <div id="game-interface">
                 <div style="padding:10px; display:flex; justify-content:space-between; align-items:center;">
-                    <button onclick="leaveRoom()" style="background:var(--danger); font-size:12px; padding:5px 10px">انسحاب</button>
-                    <span style="color:#aaa; font-size:12px">Room: <span id="game-code"></span></span>
+                    <button onclick="leavegame()" style="background:var(--danger); font-size:12px; padding:5px 10px">انسحاب</button>
+                    <span style="color:#aaa; font-size:12px">game: <span id="game-code"></span></span>
                 </div>
 
                 <div id="table-surface" onclick="cancelSelection(event)">
@@ -188,7 +188,7 @@
     <div id="screen-winner" class="screen hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:400; border:2px solid var(--gold);">
         <h1 style="color:var(--gold); font-size:3rem;">🏆 CHAMPION 🏆</h1>
         <h2 id="winner-name"></h2>
-        <button onclick="leaveRoom()">القائمة الرئيسية</button>
+        <button onclick="leavegame()">القائمة الرئيسية</button>
     </div>
 
     <div id="chat-icon" class="hidden" onclick="toggleChat()">
@@ -207,7 +207,7 @@
     const db = firebase.database();
 
     // --- Variables ---
-    let myName="", myId="", currentRoom="", isHost=false;
+    let myName="", myId="", currentgame="", isHost=false;
     let gameData={}, chatOpen=false, timerInt=null;
     let selectedIdx = -1; // الورقة المحددة حالياً
 
@@ -238,45 +238,45 @@
         setTimeout(()=>t.style.opacity=0, 2000);
     }
 
-    // --- Room Logic ---
-    function createRoom() {
+    // --- game Logic ---
+    function creategame() {
         const code = Math.floor(1000+Math.random()*9000).toString();
         myId = Date.now().toString();
-        db.ref('rooms/'+code).set({
+        db.ref('games/'+code).set({
             status: 'waiting', host: myId, roundCount: 0,
             players: { [myId]: { name: myName, score: 0, hand:[], count:0, isBot:false } }
-        }).then(()=>enterRoom(code, true));
+        }).then(()=>entergame(code, true));
     }
-    function joinRoom() {
+    function joingame() {
         const code = document.getElementById('code-input').value.trim();
         if(!code) return;
         myId = Date.now().toString();
-        db.ref('rooms/'+code).once('value', s => {
+        db.ref('games/'+code).once('value', s => {
             if(!s.exists()) return alert("غير موجودة");
             if(s.val().status !== 'waiting') return alert("بدأت بالفعل");
             if(Object.keys(s.val().players||{}).length >=4) return alert("ممتلئة");
-            db.ref(`rooms/${code}/players/${myId}`).set({ name: myName, score: 0, hand:[], count:0, isBot:false })
-            .then(()=>enterRoom(code, false));
+            db.ref(`games/${code}/players/${myId}`).set({ name: myName, score: 0, hand:[], count:0, isBot:false })
+            .then(()=>entergame(code, false));
         });
     }
-    function enterRoom(code, host) {
-        currentRoom = code; isHost = host;
+    function entergame(code, host) {
+        currentgame = code; isHost = host;
         document.getElementById('lobby-code').innerText = code;
         document.getElementById('game-code').innerText = code;
         show('screen-lobby');
         if(isHost) document.getElementById('start-btn').classList.remove('hidden');
         document.getElementById('chat-icon').classList.remove('hidden');
-        db.ref(`rooms/${code}/players/${myId}`).onDisconnect().update({ isBot: true });
+        db.ref(`games/${code}/players/${myId}`).onDisconnect().update({ isBot: true });
         listen();
     }
-    function leaveRoom() {
-        if(currentRoom && myId) db.ref(`rooms/${currentRoom}/players/${myId}`).update({ isBot: true });
+    function leavegame() {
+        if(currentgame && myId) db.ref(`games/${currentgame}/players/${myId}`).update({ isBot: true });
         location.reload();
     }
 
     // --- Listen ---
     function listen() {
-        db.ref(`rooms/${currentRoom}`).on('value', s => {
+        db.ref(`games/${currentgame}`).on('value', s => {
             const d = s.val();
             if(!d) return location.reload();
             gameData = d;
@@ -326,7 +326,7 @@
         updates['turnIndex'] = startTurnIndex;
         updates['turnStartTime'] = firebase.database.ServerValue.TIMESTAMP;
         updates['roundCount'] = (gameData.roundCount || 0) + 1;
-        db.ref('rooms/'+currentRoom).update(updates);
+        db.ref('games/'+currentgame).update(updates);
     }
 
     function updateGame(data) {
@@ -487,7 +487,7 @@
             setTimeout(() => {
                 const pIds = data.playerOrder;
                 const next = (data.turnIndex + 1) % pIds.length;
-                db.ref('rooms/'+currentRoom).update({
+                db.ref('games/'+currentgame).update({
                     turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP
                 });
             }, 1500);
@@ -527,7 +527,7 @@
     function nextTurn(board, hand) {
         const pIds = gameData.playerOrder;
         const next = (gameData.turnIndex + 1) % pIds.length;
-        db.ref('rooms/'+currentRoom).update({
+        db.ref('games/'+currentgame).update({
             board: board, turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP,
             [`players/${myId}/hand`]: hand, [`players/${myId}/count`]: hand.length
         });
@@ -543,14 +543,14 @@
             roundWinnerName: gameData.players[winnerId].name, board: board, [`players/${winnerId}/hand`]: []
         };
         if(newScore >= 101) { up.status = 'match_over'; up.matchWinnerName = gameData.players[winnerId].name; }
-        db.ref('rooms/'+currentRoom).update(up);
+        db.ref('games/'+currentgame).update(up);
     }
     function drawTile() {
         let stock = gameData.stock || [];
         if(stock.length === 0) return;
         const t = stock.pop();
         const hand = gameData.players[myId].hand; hand.push(t);
-        db.ref('rooms/'+currentRoom).update({ stock: stock, [`players/${myId}/hand`]: hand, [`players/${myId}/count`]: hand.length });
+        db.ref('games/'+currentgame).update({ stock: stock, [`players/${myId}/hand`]: hand, [`players/${myId}/count`]: hand.length });
         // Hand re-rendered automatically via listener
     }
     function hasMove(hand, board) {
@@ -612,23 +612,24 @@
                  let total=0; Object.keys(gameData.players).forEach(oid=>{ if(oid!==pId) (gameData.players[oid].hand||[]).forEach(t=>total+=t.a+t.b) });
                  up[`players/${pId}/score`] = (p.score||0)+total;
             }
-            db.ref('rooms/'+currentRoom).update(up);
+            db.ref('games/'+currentgame).update(up);
         } else {
             // Bot Pass or Draw
             if(Object.keys(gameData.players).length===2 && (gameData.stock||[]).length>0) {
                 const stock = gameData.stock; const t = stock.pop(); hand.push(t);
-                db.ref('rooms/'+currentRoom).update({ stock:stock, [`players/${pId}/hand`]:hand, [`players/${pId}/count`]:hand.length });
+                db.ref('games/'+currentgame).update({ stock:stock, [`players/${pId}/hand`]:hand, [`players/${pId}/count`]:hand.length });
             } else {
                 const next = (gameData.turnIndex + 1) % gameData.playerOrder.length;
-                db.ref('rooms/'+currentRoom).update({ turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP });
+                db.ref('games/'+currentgame).update({ turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP });
             }
         }
     }
 
     // Chat
     function toggleChat(){ chatOpen=!chatOpen; document.getElementById('chat-box').classList.toggle('hidden'); document.getElementById('chat-badge').classList.add('hidden'); }
-    function sendMsg(){ const i=document.getElementById('chat-in'); if(i.value) db.ref(`rooms/${currentRoom}/chat`).push({n:myName, t:i.value}); i.value=""; }
+    function sendMsg(){ const i=document.getElementById('chat-in'); if(i.value) db.ref(`games/${currentgame}/chat`).push({n:myName, t:i.value}); i.value=""; }
     function updateChat(c){ const b=document.getElementById('chat-msgs'); b.innerHTML=Object.values(c||{}).map(m=>`<div class="msg ${m.n===myName?'mine':''}"><b>${m.n}:</b> ${m.t}</div>`).join(''); if(!chatOpen && c) document.getElementById('chat-badge').classList.remove('hidden'); }
 </script>
 </body>
 </html>
+
