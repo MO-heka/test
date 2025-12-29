@@ -3,12 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
-    <meta property="og:title" content="لعبة الشطرنج أونلاين - HEKA CHESS">
-    <meta property="og:description" content="تحدى أصدقاءك في لعبة شطرنج احترافية.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1529699211952-734e80c4d42b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1351&q=80">
-    <meta property="og:url" content="https://your-github-username.github.io/chess-game">
-
     <title>HEKA CHESS PRO</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
@@ -17,18 +11,18 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
     <style>
         :root {
             --bg-color: #0f172a;
-            --glass-bg: rgba(30, 41, 59, 0.9);
+            --glass-bg: rgba(30, 41, 59, 0.95);
             --board-white: #e2e8f0;
             --board-black: #475569;
             --accent: #3b82f6;
             --highlight: rgba(255, 255, 0, 0.5);
             --hint: rgba(16, 185, 129, 0.6);
             --gold: #fbbf24;
+            --danger: #ef4444;
         }
 
         body {
@@ -47,7 +41,7 @@
             font-family: 'Cinzel', serif;
             color: var(--gold);
             text-align: center;
-            font-size: 2rem;
+            font-size: 1.8rem;
             margin: 10px 0;
             text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
         }
@@ -62,7 +56,7 @@
         
         .box {
             background: var(--glass-bg);
-            padding: 30px; border-radius: 15px;
+            padding: 25px; border-radius: 15px;
             text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.1);
             width: 90%; max-width: 400px;
@@ -70,24 +64,25 @@
 
         input, select {
             background: rgba(255,255,255,0.1); border: 1px solid #555;
-            color: white; padding: 10px; width: 80%;
-            margin: 10px 0; border-radius: 5px; font-family: 'Cairo';
+            color: white; padding: 12px; width: 85%;
+            margin: 10px 0; border-radius: 8px; font-family: 'Cairo'; outline: none;
+            text-align: center;
         }
 
         button {
             background: var(--accent); color: white;
-            border: none; padding: 10px 25px;
-            border-radius: 5px; cursor: pointer;
+            border: none; padding: 12px 30px;
+            border-radius: 8px; cursor: pointer;
             font-weight: bold; font-family: 'Cairo';
             margin: 5px; transition: 0.2s;
         }
-        button:hover { transform: scale(1.05); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); }
         .hidden { display: none !important; }
 
         /* رقعة الشطرنج */
         #game-area {
             flex: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
+            align-items: center; justify-content: center; width: 100%;
         }
 
         #chessboard {
@@ -95,8 +90,11 @@
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(8, 1fr);
-            border: 5px solid #334155;
+            border: 8px solid #334155;
+            border-radius: 4px;
             user-select: none;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background: #333;
         }
 
         .square {
@@ -107,53 +105,52 @@
         .white-sq { background-color: var(--board-white); color: black; }
         .black-sq { background-color: var(--board-black); color: white; }
         
-        /* تظليل آخر حركة */
         .highlight { background-color: var(--highlight) !important; }
-        /* تظليل القطعة المختارة */
-        .selected { background-color: rgba(59, 130, 246, 0.6) !important; }
+        .selected { background-color: rgba(59, 130, 246, 0.7) !important; }
 
         /* قطع الشطرنج */
-       .piece {
-            width: 100%; 
-            height: 100%;
+        .piece {
+            width: 100%; height: 100%;
             background-repeat: no-repeat;
             background-position: center;
-            background-size: 85%; /* حجم مناسب عشان القطعة تكون واضحة */
+            background-size: 90%; /* حجم الصورة */
             cursor: pointer;
             z-index: 2;
-            transition: transform 0.1s;
+            transition: transform 0.15s;
         }
-        .piece:active { transform: scale(1.2); }
+        .piece:active { transform: scale(1.1); }
 
-        /* نقطة التلميح للمبتدئين */
+        /* تلميحات */
         .hint-dot {
-            position: absolute;
-            width: 30%; height: 30%;
-            background: var(--hint);
-            border-radius: 50%;
-            z-index: 1;
+            position: absolute; width: 25%; height: 25%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 50%; z-index: 1;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
         }
         .capture-hint {
             position: absolute; width: 100%; height: 100%;
-            border: 4px solid var(--hint);
-            box-sizing: border-box;
-            z-index: 1;
+            border: 4px solid var(--danger);
+            border-radius: 50%;
+            box-sizing: border-box; z-index: 1;
+            opacity: 0.5;
         }
 
         /* معلومات اللاعبين */
         .player-info {
             width: 340px; display: flex; justify-content: space-between;
-            padding: 5px; background: rgba(0,0,0,0.3);
-            border-radius: 5px; margin: 5px 0;
-            font-size: 14px;
+            padding: 8px 15px; background: rgba(0,0,0,0.4);
+            border-radius: 8px; margin: 8px 0;
+            font-size: 14px; align-items: center;
+            border: 1px solid transparent;
         }
-        .turn-active { border: 1px solid var(--gold); background: rgba(251, 191, 36, 0.2); }
+        .turn-active { border-color: var(--gold); background: rgba(251, 191, 36, 0.15); box-shadow: 0 0 10px rgba(251, 191, 36, 0.2); }
+        .avatar { font-size: 1.2rem; margin-left: 5px; }
 
         /* الشات */
-        #chat-btn { position: fixed; bottom: 20px; right: 20px; background: var(--accent); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 5px 15px black; z-index: 100; }
-        #chat-box { position: fixed; bottom: 80px; right: 20px; width: 280px; height: 300px; background: var(--glass-bg); border-radius: 10px; display: flex; flex-direction: column; z-index: 100; border: 1px solid #444; }
-        .msg { background: rgba(255,255,255,0.1); padding: 5px; margin: 2px; border-radius: 4px; font-size: 12px; text-align: right; }
-
+        #chat-btn { position: fixed; bottom: 20px; right: 20px; background: var(--accent); width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 100; font-size: 24px; }
+        #chat-box { position: fixed; bottom: 90px; right: 20px; width: 300px; height: 350px; background: var(--glass-bg); border-radius: 12px; display: flex; flex-direction: column; z-index: 100; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        .msg { background: rgba(255,255,255,0.08); padding: 8px; margin: 4px; border-radius: 6px; font-size: 13px; text-align: right; color: #ddd; }
+        .msg b { color: var(--gold); }
     </style>
 </head>
 <body>
@@ -162,7 +159,7 @@
         <h1 class="title">HEKA CHESS</h1>
         <div class="box">
             <h3>تسجيل الدخول</h3>
-            <input type="text" id="username" placeholder="اسم اللاعب">
+            <input type="text" id="username" placeholder="اسمك يا بطل" maxlength="15">
             <button onclick="saveName()">دخول</button>
         </div>
     </div>
@@ -170,65 +167,68 @@
     <div id="screen-menu" class="screen hidden">
         <h1 class="title">HEKA CHESS</h1>
         <div class="box">
-            <h3 id="welcome-msg"></h3>
-            <hr style="border-color:#444">
+            <h3 id="welcome-msg" style="color:var(--gold)"></h3>
+            <hr style="border-color:rgba(255,255,255,0.1); margin: 15px 0;">
             
-            <h4>إنشاء غرفة جديدة</h4>
-            <select id="level-select">
-                <option value="beginner">مستوى: مبتدئ (مساعدات)</option>
-                <option value="pro">مستوى: محترف (بدون مساعدات)</option>
-            </select>
-            <button onclick="createRoom()">إنشاء غرفة</button>
+            <div style="margin-bottom: 20px;">
+                <h4 style="margin:5px">إنشاء غرفة جديدة</h4>
+                <select id="level-select">
+                    <option value="beginner">مبتدئ (مع مساعدات)</option>
+                    <option value="pro">محترف (بدون مساعدات)</option>
+                </select>
+                <button onclick="createRoom()" style="background:#10b981; width:90%">إنشاء</button>
+            </div>
             
-            <br><br>
-            <h4>دخول غرفة موجودة</h4>
-            <input type="text" id="room-code-in" placeholder="كود الغرفة">
-            <button onclick="joinRoom()" style="background:#10b981">انضمام</button>
+            <div>
+                <h4 style="margin:5px">دخول غرفة</h4>
+                <div style="display:flex; justify-content:center; gap:5px">
+                    <input type="text" id="room-code-in" placeholder="كود الغرفة" style="width:50%; margin:0">
+                    <button onclick="joinRoom()" style="margin:0; padding:12px 20px">انضمام</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="screen-lobby" class="screen hidden">
         <div class="box">
-            <h2>غرفة رقم: <span id="lobby-code" style="color:var(--gold)"></span></h2>
-            <p>في انتظار الخصم...</p>
-            <div id="lobby-status" style="color:#aaa"></div>
-            <button onclick="leaveRoom()" style="background:var(--danger)">خروج</button>
+            <h2>كود الغرفة: <span id="lobby-code" style="color:var(--gold); font-size:2rem; letter-spacing:2px"></span></h2>
+            <p style="color:#ccc">أرسل الكود لصديقك ليدخل...</p>
+            <div id="lobby-loader" style="margin:20px; font-size:20px">⏳ في الانتظار...</div>
+            <button onclick="leaveRoom()" style="background:var(--danger)">إلغاء</button>
         </div>
     </div>
 
-    <div id="screen-game" class="screen hidden" style="background:var(--bg-color)">
-        <h1 class="title" style="font-size:1.2rem">HEKA CHESS</h1>
-        
+    <div id="screen-game" class="screen hidden">
         <div id="top-player" class="player-info">
-            <span>👤 <span id="opp-name">انتظار...</span></span>
-            <span id="opp-timer">00:00</span>
+            <div><span class="avatar">👤</span> <span id="opp-name">---</span></div>
+            <div id="opp-status" style="font-size:12px; color:#aaa"></div>
         </div>
 
         <div id="chessboard"></div>
 
         <div id="bottom-player" class="player-info">
-            <span>👤 <span id="my-name">أنا</span></span>
-            <span id="my-timer">00:00</span>
+            <div><span class="avatar">👤</span> <span id="my-name">أنا</span></div>
+            <div id="my-color-indicator" style="font-size:12px; color:#aaa"></div>
         </div>
         
-        <div id="game-status" style="margin-top:10px; color:var(--gold); font-weight:bold;"></div>
-        <button onclick="leaveRoom()" style="margin-top:10px; font-size:12px; background:#ef4444">انسحاب</button>
+        <div id="game-status" style="margin-top:15px; color:var(--gold); font-weight:bold; height:20px;"></div>
+        <button onclick="leaveRoom()" style="margin-top:10px; font-size:13px; background:var(--danger); padding:8px 20px">انسحاب</button>
     </div>
 
     <div id="chat-btn" class="hidden" onclick="toggleChat()">💬</div>
     <div id="chat-box" class="hidden">
-        <div style="padding:10px; border-bottom:1px solid #444; display:flex; justify-content:space-between;">
-            <span>الدردشة</span> <span onclick="toggleChat()" style="cursor:pointer">x</span>
+        <div style="padding:12px; background:rgba(0,0,0,0.3); display:flex; justify-content:space-between; border-radius:12px 12px 0 0;">
+            <span style="font-weight:bold">الدردشة</span> <span onclick="toggleChat()" style="cursor:pointer">✖</span>
         </div>
-        <div id="chat-msgs" style="flex:1; overflow-y:auto; padding:5px;"></div>
-        <div style="padding:5px; display:flex;">
-            <input id="chat-in" style="margin:0; width:70%" placeholder="اكتب...">
-            <button onclick="sendMsg()" style="margin:0; width:25%">></button>
+        <div id="chat-msgs" style="flex:1; overflow-y:auto; padding:10px;"></div>
+        <div style="padding:10px; display:flex; border-top:1px solid rgba(255,255,255,0.1)">
+            <input id="chat-in" style="margin:0; flex:1; text-align:right" placeholder="اكتب هنا...">
+            <button onclick="sendMsg()" style="margin:0 5px; padding:0 15px">➤</button>
         </div>
     </div>
 
 <script>
-    // 1. إعدادات Firebase
+    // --- إعدادات Firebase ---
     const firebaseConfig = {
         apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
         authDomain: "heka-codenames.firebaseapp.com",
@@ -240,23 +240,18 @@
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 2. متغيرات اللعبة
-    let game = new Chess(); // محرك الشطرنج
-    let myName = "";
-    let myId = "";
-    let currentRoom = "";
-    let myColor = 'w'; // 'w' or 'b'
-    let gameMode = 'beginner'; // or 'pro'
+    // --- متغيرات ---
+    let game = new Chess();
+    let myName="", myId="", currentRoom="", myColor='w', gameMode='beginner', boardOrientation='white';
     let selectedSquare = null;
-    let boardOrientation = 'white'; // جهة العرض
+    let chatOpen = false;
 
-    // 3. الدوال الأساسية
     window.onload = () => {
-        if(localStorage.getItem('chess_username')) {
-            document.getElementById('username').value = localStorage.getItem('chess_username');
+        if(localStorage.getItem('heka_chess_name')) {
+            document.getElementById('username').value = localStorage.getItem('heka_chess_name');
             saveName();
         }
-    };
+    }
 
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -264,183 +259,134 @@
     }
 
     function saveName() {
-        const val = document.getElementById('username').value.trim();
-        if(!val) return;
-        myName = val;
-        localStorage.setItem('chess_username', myName);
-        document.getElementById('welcome-msg').innerText = "أهلاً " + myName;
+        const v = document.getElementById('username').value.trim();
+        if(!v) return;
+        myName = v;
+        localStorage.setItem('heka_chess_name', myName);
+        document.getElementById('welcome-msg').innerText = "أهلاً بك يا " + myName;
         showScreen('screen-menu');
     }
 
-    // --- إدارة الغرف ---
+    // --- الغرف ---
     function createRoom() {
         const code = Math.floor(1000 + Math.random() * 9000).toString();
         myId = Date.now().toString();
         const mode = document.getElementById('level-select').value;
-        
-        // إنشاء الغرفة في chess_rooms
-        db.ref('chess_rooms/' + code).set({
+        db.ref('chess_rooms/'+code).set({
             white: { id: myId, name: myName },
             black: null,
-            fen: 'start', // وضع البداية
+            fen: 'start',
             mode: mode,
             turn: 'w',
             status: 'waiting',
             lastMove: null
-        }).then(() => {
-            enterRoom(code, 'w');
-        });
+        }).then(() => enterRoom(code, 'w'));
     }
 
     function joinRoom() {
         const code = document.getElementById('room-code-in').value.trim();
-        if(!code) return alert("أدخل الكود");
+        if(!code) return alert("الكود؟");
         myId = Date.now().toString();
-
-        db.ref('chess_rooms/' + code).once('value', s => {
-            if(!s.exists()) return alert("غرفة غير موجودة");
-            const data = s.val();
-            if(data.black) return alert("الغرفة ممتلئة");
-
-            // الانضمام كلاعب أسود
-            db.ref('chess_rooms/' + code).update({
+        db.ref('chess_rooms/'+code).once('value', s => {
+            if(!s.exists()) return alert("غير موجودة");
+            const d = s.val();
+            if(d.black) return alert("ممتلئة");
+            db.ref('chess_rooms/'+code).update({
                 black: { id: myId, name: myName },
                 status: 'playing'
-            }).then(() => {
-                enterRoom(code, 'b');
-            });
+            }).then(() => enterRoom(code, 'b'));
         });
     }
 
     function enterRoom(code, color) {
-        currentRoom = code;
-        myColor = color;
-        boardOrientation = (color === 'w') ? 'white' : 'black';
-        
+        currentRoom = code; myColor = color;
+        boardOrientation = (color==='w') ? 'white' : 'black';
         document.getElementById('lobby-code').innerText = code;
         document.getElementById('chat-btn').classList.remove('hidden');
         
-        if(color === 'w') {
-            showScreen('screen-lobby');
-        } else {
-            showScreen('screen-game'); // الأسود يدخل اللعب مباشرة لأن الغرفة اكتملت
-        }
+        if(color === 'w') showScreen('screen-lobby');
+        else showScreen('screen-game');
         
-        listenToRoom();
+        listen();
     }
 
     function leaveRoom() {
-        if(currentRoom) {
-            // حذف الغرفة للتبسيط عند الخروج
-            db.ref('chess_rooms/' + currentRoom).remove();
-        }
+        if(currentRoom) db.ref('chess_rooms/'+currentRoom).remove();
         location.reload();
     }
 
-    // --- الاستماع للتحديثات ---
-    function listenToRoom() {
-        db.ref('chess_rooms/' + currentRoom).on('value', s => {
-            const data = s.val();
-            if(!data) return location.reload(); // الغرفة أغلقت
+    function listen() {
+        db.ref('chess_rooms/'+currentRoom).on('value', s => {
+            const d = s.val();
+            if(!d) return location.reload();
 
-            gameMode = data.mode;
-
-            // تحديث حالة اللوبي
-            if(data.status === 'waiting') {
-                document.getElementById('lobby-status').innerText = "في انتظار دخول خصم...";
-            } else if (data.status === 'playing') {
-                showScreen('screen-game');
-                
-                // تحديث الأسماء
-                const oppColor = (myColor === 'w') ? 'black' : 'white';
-                const myColorFull = (myColor === 'w') ? 'white' : 'black';
-                
-                if(data[myColorFull]) document.getElementById('my-name').innerText = data[myColorFull].name;
-                if(data[oppColor]) document.getElementById('opp-name').innerText = data[oppColor].name;
-
-                // مزامنة حالة اللعبة
-                if(data.fen === 'start') game.reset();
-                else game.load(data.fen);
-
-                renderBoard(data.lastMove);
-                updateStatus(data);
-            }
+            gameMode = d.mode;
             
-            // تحديث الشات
-            updateChat(data.chat);
+            // تحديث اللوبي
+            if(d.status === 'playing') {
+                if(!document.getElementById('screen-game').classList.contains('hidden') === false) {
+                    showScreen('screen-game');
+                }
+                updateGameUI(d);
+            }
+
+            // الشات
+            updateChat(d.chat);
         });
     }
 
-    // --- منطق الرسم واللعب ---
-    
-    // دالة لجلب صور القطع
+    // --- المنطق والرسم ---
+    // المصدر الجديد الموثوق للصور (GitHub Raw)
     function getPieceImg(piece) {
-        // piece: { type: 'p', color: 'w' }
-        const color = piece.color === 'w' ? 'l' : 'd'; // light / dark for url naming
-        const type = piece.type; // p, n, b, r, q, k
-        // استخدام صور SVG من ويكيميديا
-        const map = {
-            'p': 'pawn', 'n': 'knight', 'b': 'bishop', 'r': 'rook', 'q': 'queen', 'k': 'king'
-        };
-        // Url Pattern: https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg
-        // سنستخدم مكتبة صور جاهزة أسهل
-        const url = `https://images.chesscomfiles.com/chess-themes/pieces/neo/150/${color}${type}.png`;
-        return url;
+        // piece.color: 'w', piece.type: 'p' -> wP.svg
+        const c = piece.color; 
+        const t = piece.type.toUpperCase();
+        // نستخدم رابط GitHub Raw مباشر من مستودع Lichess (موثوق وسريع)
+        return `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett/${c}${t}.svg`;
+    }
+
+    function updateGameUI(data) {
+        // الأسماء
+        const oppColor = (myColor==='w')?'black':'white';
+        const myColorFull = (myColor==='w')?'white':'black';
+        if(data[myColorFull]) {
+            document.getElementById('my-name').innerText = data[myColorFull].name;
+            document.getElementById('my-color-indicator').innerText = (myColor==='w'?"(أبيض)":"(أسود)");
+        }
+        if(data[oppColor]) document.getElementById('opp-name').innerText = data[oppColor].name;
+        else document.getElementById('opp-name').innerText = "جاري الاتصال...";
+
+        // اللعبة
+        if(data.fen === 'start') game.reset();
+        else game.load(data.fen);
+
+        renderBoard(data.lastMove);
+        updateStatus();
     }
 
     function renderBoard(lastMove) {
         const boardEl = document.getElementById('chessboard');
         boardEl.innerHTML = "";
-        
-        const boardState = game.board(); // مصفوفة 8x8
+        const board = game.board();
 
-        // تحديد الترتيب بناء على لوني (Orientation)
-        // لو أنا أبيض: الصفوف 0->7، لو أسود: 7->0
-        // في chess.js: row 0 هو rank 8 (فوق).
-        
-        let rows = [0, 1, 2, 3, 4, 5, 6, 7];
-        if(boardOrientation === 'white') {
-             // عرض عادي (الأبيض تحت)
-             // في HTML Grid نبدأ من فوق لتحت، يعني الصف 0 (8) ثم 1 (7)...
-             // هذا هو الطبيعي
-        } else {
-            // أنا أسود، أريد الصفوف معكوسة (صفي 7 يكون تحت)
-            rows = rows.reverse();
-        }
-
-        // ملاحظة: CSS Grid يرتب العناصر واحدا تلو الآخر.
-        // لو أنا أبيض، أريد المربع الأول يكون a8 (0,0) والأخير h1 (7,7)
-        // لو أنا أسود، أريد المربع الأول يكون h1 (7,7) والأخير a8 (0,0)
-        
-        // تعديل المنطق للحلقات:
-        for(let r = 0; r < 8; r++) {
-            for(let c = 0; c < 8; c++) {
-                // حساب الإحداثيات الحقيقية بناء على التوجيه
-                let row = (boardOrientation === 'white') ? r : (7 - r);
-                let col = (boardOrientation === 'white') ? c : (7 - c);
+        for(let r=0; r<8; r++) {
+            for(let c=0; c<8; c++) {
+                // عكس الصفوف لو أنا أسود
+                let row = (boardOrientation==='white') ? r : (7-r);
+                let col = (boardOrientation==='white') ? c : (7-c);
                 
-                const squareName = String.fromCharCode(97 + col) + (8 - row); // e.g., 'e4'
-                const piece = boardState[row][col];
+                const square = String.fromCharCode(97+col) + (8-row);
+                const piece = board[row][col];
                 
-                // لون المربع
-                const isLight = (row + col) % 2 === 0;
-                const sqClass = isLight ? 'white-sq' : 'black-sq';
-                
+                const isLight = (row+col)%2===0;
                 const div = document.createElement('div');
-                div.className = `square ${sqClass}`;
-                div.dataset.square = squareName;
+                div.className = `square ${isLight?'white-sq':'black-sq'}`;
                 
-                // تظليل آخر حركة
-                if(lastMove && (lastMove.from === squareName || lastMove.to === squareName)) {
-                    div.classList.add('highlight');
-                }
-                
-                // تظليل التحديد الحالي
-                if(selectedSquare === squareName) {
-                    div.classList.add('selected');
-                }
+                // الهايلايت
+                if(lastMove && (lastMove.from===square || lastMove.to===square)) div.classList.add('highlight');
+                if(selectedSquare === square) div.classList.add('selected');
 
-                // إضافة القطعة
+                // القطعة
                 if(piece) {
                     const img = document.createElement('div');
                     img.className = 'piece';
@@ -448,129 +394,100 @@
                     div.appendChild(img);
                 }
 
-                // إضافة مساعدات (Hints) للمبتدئين
+                // المساعدات (للمبتدئ)
                 if(gameMode === 'beginner' && selectedSquare) {
                     const moves = game.moves({ square: selectedSquare, verbose: true });
-                    const isHint = moves.find(m => m.to === squareName);
-                    if(isHint) {
-                        const hintDiv = document.createElement('div');
-                        if(piece) hintDiv.className = 'capture-hint'; // لو فيه قطعة (أكل)
-                        else hintDiv.className = 'hint-dot'; // حركة عادية
-                        div.appendChild(hintDiv);
+                    const move = moves.find(m => m.to === square);
+                    if(move) {
+                        const hint = document.createElement('div');
+                        // هل هي أكلة؟
+                        if(move.flags.includes('c') || move.flags.includes('e')) hint.className = 'capture-hint';
+                        else hint.className = 'hint-dot';
+                        div.appendChild(hint);
                     }
                 }
 
-                div.onclick = () => onSquareClick(squareName);
+                div.onclick = () => handleSquareClick(square);
                 boardEl.appendChild(div);
             }
         }
     }
 
-    function onSquareClick(square) {
-        // التحقق من الدور
+    function handleSquareClick(sq) {
         if(game.turn() !== myColor) return; // ليس دوري
-        // التحقق من انتهاء اللعبة
-        if(game.game_over()) return;
-
-        // 1. إذا ضغطت على قطعة لي -> تحديد
-        const piece = game.get(square);
-        if(piece && piece.color === myColor) {
-            selectedSquare = square;
-            renderBoard(null); // إعادة رسم لإظهار التحديد والمساعدات
+        
+        // 1. تحديد قطعة
+        const p = game.get(sq);
+        if(p && p.color === myColor) {
+            selectedSquare = sq;
+            // إعادة رسم محلي فقط للتحديد
+            renderBoard(null); 
             return;
         }
 
-        // 2. إذا كان هناك تحديد، وضغطت مربع آخر -> محاولة الحركة
+        // 2. التحرك
         if(selectedSquare) {
-            const move = {
+            const move = game.move({
                 from: selectedSquare,
-                to: square,
-                promotion: 'q' // ترقية الوزير تلقائياً للتبسيط
-            };
+                to: sq,
+                promotion: 'q' // دائماً وزير للتبسيط
+            });
 
-            // محاولة الحركة في المنطق المحلي
-            const result = game.move(move);
-            if(result) {
-                // حركة صحيحة
+            if(move) {
                 selectedSquare = null;
                 // تحديث السيرفر
-                updateFirebase(result);
+                db.ref('chess_rooms/'+currentRoom).update({
+                    fen: game.fen(),
+                    turn: game.turn(),
+                    lastMove: { from: move.from, to: move.to }
+                });
             } else {
-                // حركة خاطئة
                 selectedSquare = null;
                 renderBoard(null);
             }
         }
     }
 
-    function updateFirebase(move) {
-        db.ref('chess_rooms/' + currentRoom).update({
-            fen: game.fen(),
-            turn: game.turn(),
-            lastMove: { from: move.from, to: move.to }
-        });
-    }
-
-    function updateStatus(data) {
-        const statusEl = document.getElementById('game-status');
-        const turnElMy = document.getElementById('bottom-player');
-        const turnElOpp = document.getElementById('top-player');
-
-        turnElMy.classList.remove('turn-active');
-        turnElOpp.classList.remove('turn-active');
+    function updateStatus() {
+        const s = document.getElementById('game-status');
+        const myInfo = document.getElementById('bottom-player');
+        const oppInfo = document.getElementById('top-player');
+        
+        myInfo.classList.remove('turn-active');
+        oppInfo.classList.remove('turn-active');
 
         if(game.game_over()) {
-            if(game.in_checkmate()) {
-                statusEl.innerText = "كش مات! اللعبة انتهت 🏆";
-            } else if(game.in_draw()) {
-                statusEl.innerText = "تعادل!";
-            }
+            if(game.in_checkmate()) s.innerText = "كش مات! 🏁";
+            else if(game.in_draw()) s.innerText = "تعادل 🤝";
+            else s.innerText = "انتهت اللعبة";
         } else {
             if(game.turn() === myColor) {
-                statusEl.innerText = "دورك للعب";
-                turnElMy.classList.add('turn-active');
+                s.innerText = "دورك للعب";
+                myInfo.classList.add('turn-active');
             } else {
-                statusEl.innerText = "دور الخصم";
-                turnElOpp.classList.add('turn-active');
+                s.innerText = "دور الخصم";
+                oppInfo.classList.add('turn-active');
             }
-            
-            if(game.in_check()) {
-                statusEl.innerText += " (كش ملك!)";
-                statusEl.style.color = "red";
-            }
+            if(game.in_check()) s.innerText += " (كش!)";
         }
     }
 
     // --- الشات ---
-    let chatOpen = false;
-    function toggleChat() {
-        chatOpen = !chatOpen;
-        const box = document.getElementById('chat-box');
-        if(chatOpen) box.classList.remove('hidden');
-        else box.classList.add('hidden');
-    }
-
+    function toggleChat() { chatOpen=!chatOpen; document.getElementById('chat-box').classList.toggle('hidden'); }
     function sendMsg() {
-        const inp = document.getElementById('chat-in');
-        const txt = inp.value.trim();
-        if(!txt) return;
-        db.ref('chess_rooms/' + currentRoom + '/chat').push({
-            name: myName, text: txt
-        });
-        inp.value = "";
+        const i = document.getElementById('chat-in');
+        if(i.value.trim()) db.ref('chess_rooms/'+currentRoom+'/chat').push({n:myName, t:i.value});
+        i.value="";
     }
-
-    function updateChat(chatData) {
-        const div = document.getElementById('chat-msgs');
-        div.innerHTML = "";
-        if(!chatData) return;
-        Object.values(chatData).forEach(m => {
-            div.innerHTML += `<div class="msg"><b>${m.name}:</b> ${m.text}</div>`;
+    function updateChat(c) {
+        const d = document.getElementById('chat-msgs');
+        d.innerHTML = "";
+        if(!c) return;
+        Object.values(c).forEach(m => {
+            d.innerHTML += `<div class="msg"><b>${m.n}:</b> ${m.t}</div>`;
         });
-        div.scrollTop = div.scrollHeight;
+        d.scrollTop = d.scrollHeight;
     }
-
 </script>
 </body>
 </html>
-
