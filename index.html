@@ -3,310 +3,440 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لعبة ديسكيت - Dixit Online</title>
+    <title>لعبة الدومينو أونلاين</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        /* --- تنسيقات CSS --- */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #2c3e50; color: white; text-align: center; margin: 0; padding: 20px; }
+        :root { --main-color: #2c3e50; --accent-color: #e67e22; --bg-color: #ecf0f1; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; text-align: center; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { color: var(--main-color); }
+        input, button { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
+        button { background-color: var(--main-color); color: white; cursor: pointer; border: none; }
+        button:hover { background-color: #34495e; }
+        .hidden { display: none; }
         
-        h1 { color: #f1c40f; }
+        /* تصميم الدومينو */
+        .domino { 
+            display: inline-flex; flex-direction: column; width: 40px; height: 80px; 
+            border: 2px solid #333; border-radius: 5px; background: white; margin: 2px; cursor: pointer; justify-content: space-between;
+        }
+        .domino-h { flex-direction: row; width: 80px; height: 40px; } /* للأوراق العرضية */
+        .half { flex: 1; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 1px solid #ccc; font-size: 18px; }
         
-        /* شاشات اللعبة */
-        #login-screen, #game-screen { display: none; }
-        .active { display: block !important; }
+        /* منطقة اللعب */
+        #game-board { background-color: #27ae60; min-height: 200px; padding: 20px; border-radius: 10px; overflow-x: auto; white-space: nowrap; display: flex; align-items: center; justify-content: center; }
+        #my-hand { margin-top: 20px; background: #ddd; padding: 10px; border-radius: 5px; min-height: 90px; }
+        
+        /* قائمة اللاعبين */
+        #players-list { list-style: none; padding: 0; display: flex; justify-content: space-around; flex-wrap: wrap; }
+        .player-card { background: #eee; padding: 10px; margin: 5px; border-radius: 5px; min-width: 100px; }
+        .active-turn { border: 2px solid var(--accent-color); background: #ffeebb; }
 
-        /* الأزرار والمدخلات */
-        input { padding: 10px; font-size: 16px; border-radius: 5px; border: none; }
-        button { padding: 10px 20px; font-size: 16px; background-color: #e67e22; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
-        button:hover { background-color: #d35400; }
-
-        /* منطقة الكروت */
-        .cards-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
-        .card { width: 150px; height: 220px; border-radius: 10px; overflow: hidden; border: 3px solid transparent; cursor: pointer; transition: transform 0.2s; background: #fff; }
-        .card img { width: 100%; height: 100%; object-fit: cover; }
-        .card:hover { transform: scale(1.05); }
-        .card.selected { border-color: #2ecc71; transform: scale(1.1); box-shadow: 0 0 15px #2ecc71; }
-
-        /* منطقة الحالة */
-        #status-bar { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .role-tag { font-weight: bold; color: #f39c12; }
+        /* الشات */
+        #chat-box { border: 1px solid #ccc; height: 150px; overflow-y: scroll; margin-top: 20px; text-align: right; padding: 10px; background: #fff; }
+        .msg { margin: 5px 0; border-bottom: 1px solid #eee; padding-bottom: 2px; }
+        .msg strong { color: var(--main-color); }
     </style>
 </head>
 <body>
 
-    <h1>🎭 Dixit Odyssey 🎭</h1>
+<div class="container">
+    <h1>🎲 دومينو المحترفين</h1>
 
-    <div id="login-screen" class="active">
-        <h3>أدخل اسمك للانضمام</h3>
-        <input type="text" id="username" placeholder="اسم اللاعب">
-        <button onclick="joinGame()">دخول اللعبة</button>
+    <div id="login-screen">
+        <h3>مرحباً! أدخل اسمك للبدء</h3>
+        <input type="text" id="username" placeholder="اسمك المستعار">
+        <button onclick="saveName()">حفظ الاسم</button>
     </div>
 
-    <div id="game-screen">
-        <div id="status-bar">
-            <p>مرحباً <span id="player-name-display"></span> | أنت: <span id="player-role" class="role-tag">انتظر...</span></p>
-            <h2 id="game-instruction">جاري تحميل الحالة...</h2>
-            <div id="clue-display" style="display:none; font-size: 1.2em; color: #add8e6;"></div>
-        </div>
-
-        <div id="storyteller-area" style="display:none;">
-            <input type="text" id="clue-input" placeholder="اكتب وصفاً للكارت المختار...">
-            <button onclick="submitClue()">تأكيد الوصف والكارت</button>
-        </div>
-
-        <div id="table-area" style="display:none;">
-            <h3>الكروت على الطاولة (اختر الكارت الصحيح)</h3>
-            <div id="table-cards" class="cards-container"></div>
-            <button onclick="submitVote()" id="vote-btn" style="display:none;">تأكيد التصويت</button>
-        </div>
-
-        <div id="hand-area">
-            <h3>كروتك</h3>
-            <div id="my-hand" class="cards-container"></div>
-            <button onclick="playCard()" id="play-card-btn" style="display:none;">العب الكارت المحدد</button>
-        </div>
+    <div id="menu-screen" class="hidden">
+        <h3 id="welcome-msg"></h3>
+        <button onclick="showScreen('login-screen')">تغيير الاسم</button>
+        <hr>
+        <input type="text" id="room-code-input" placeholder="كود الغرفة">
+        <button onclick="createRoom()">إنشاء غرفة جديدة</button>
+        <button onclick="joinRoom()">دخول غرفة</button>
     </div>
 
-    <script type="module">
-        // استيراد مكتبات Firebase (تأكد من استخدام النسخة الحديثة)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, arrayUnion, getDoc } 
-        from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+    <div id="game-screen" class="hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="room-display">غرفة: ---</h2>
+            <button onclick="leaveRoom()" style="background: red;">خروج</button>
+        </div>
+        
+        <div id="lobby-area">
+            <p>اللاعبون المتصلون:</p>
+            <ul id="players-list"></ul>
+            <button id="start-btn" class="hidden" onclick="startGame()">بدء اللعب (أنت الرئيس)</button>
+            <p id="status-msg">في انتظار بدء اللعبة...</p>
+        </div>
 
-        // ⚠️ هام: استبدل هذا الجزء بإعدادات مشروعك من Firebase Console
-        const firebaseConfig = {
-            apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4", // ضع مفتاحك هنا
-            authDomain: "heka-codenames.firebaseapp.com",
-            projectId: "heka-codenames",
-            storageBucket: "heka-codenames.firebasestorage.app",
-            messagingSenderId: "901713932504",
-            appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
+        <div id="game-area" class="hidden">
+            <div id="game-board">
+                <span style="color: white;">الطاولة فارغة</span>
+            </div>
             
-        };
+            <div style="margin: 10px;">
+                <button id="draw-btn" class="hidden" onclick="drawTile()">سحب من الخارج</button>
+                <p id="turn-indicator">دور: ---</p>
+            </div>
 
-        // تهيئة Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const ROOM_ID = "dixit_room_1"; // سنستخدم غرفة واحدة للتبسيط
+            <h3>أوراقي</h3>
+            <div id="my-hand"></div>
+        </div>
 
-        // متغيرات اللعبة المحلية
-        let myName = "";
-        let myCards = [];
-        let selectedCard = null;
-        let currentGameState = {};
+        <div id="chat-section">
+            <h3>الدردشة</h3>
+            <div id="chat-box"></div>
+            <div style="display: flex;">
+                <input type="text" id="chat-input" style="flex:1" placeholder="اكتب رسالة...">
+                <button onclick="sendMessage()">إرسال</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        // قائمة صور تجريبية (صور عشوائية من Unsplash)
-        const imageDeck = Array.from({length: 30}, (_, i) => `https://picsum.photos/300/400?random=${i}`);
+<script>
+    // 1. إعدادات Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
+        authDomain: "heka-codenames.firebaseapp.com",
+        projectId: "heka-codenames",
+        storageBucket: "heka-codenames.firebasestorage.app",
+        messagingSenderId: "901713932504",
+        appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        // 1. وظيفة الانضمام للعبة
-        window.joinGame = async () => {
-            const inputName = document.getElementById("username").value;
-            if (!inputName) return alert("الرجاء كتابة الاسم");
+    // متغيرات عامة
+    let myName = "";
+    let currentRoom = "";
+    let myId = ""; // سنستخدم وقت الدخول كمعرف فريد بسيط
+    let isHost = false;
+    let gameData = {};
+
+    // 2. إدارة المستخدم
+    window.onload = function() {
+        const storedName = localStorage.getItem('domino_username');
+        if (storedName) {
+            document.getElementById('username').value = storedName;
+            myName = storedName;
+            showScreen('menu-screen');
+            updateWelcomeMsg();
+        }
+    };
+
+    function saveName() {
+        const nameInput = document.getElementById('username').value.trim();
+        if (!nameInput) return alert("يرجى كتابة اسم!");
+        localStorage.setItem('domino_username', nameInput);
+        myName = nameInput;
+        showScreen('menu-screen');
+        updateWelcomeMsg();
+    }
+
+    function updateWelcomeMsg() {
+        document.getElementById('welcome-msg').innerText = "أهلاً بك يا " + myName;
+    }
+
+    // 3. إدارة الغرف
+    function createRoom() {
+        const code = Math.floor(1000 + Math.random() * 9000).toString(); // كود عشوائي من 4 أرقام
+        myId = Date.now().toString();
+        
+        const roomRef = db.ref('rooms/' + code);
+        roomRef.set({
+            host: myId,
+            status: 'waiting',
+            players: {
+                [myId]: { name: myName, score: 0, hand: [], count: 0 }
+            },
+            chat: {}
+        }).then(() => {
+            enterRoomUI(code, true);
+        });
+    }
+
+    function joinRoom() {
+        const code = document.getElementById('room-code-input').value.trim();
+        if (!code) return alert("أدخل كود الغرفة");
+        myId = Date.now().toString();
+
+        const roomRef = db.ref('rooms/' + code);
+        roomRef.once('value', snapshot => {
+            if (!snapshot.exists()) return alert("الغرفة غير موجودة!");
+            const data = snapshot.val();
             
-            myName = inputName;
-            document.getElementById("player-name-display").innerText = myName;
-            document.getElementById("login-screen").classList.remove("active");
-            document.getElementById("game-screen").classList.add("active");
+            if (data.status === 'playing') return alert("اللعبة بدأت بالفعل!");
+            if (Object.keys(data.players || {}).length >= 4) return alert("الغرفة ممتلئة!");
 
-            // التعامل مع قاعدة البيانات
-            const roomRef = doc(db, "games", ROOM_ID);
-            const roomSnap = await getDoc(roomRef);
+            // إضافة اللاعب
+            db.ref('rooms/' + code + '/players/' + myId).set({
+                name: myName, score: 0, hand: [], count: 0
+            });
+            enterRoomUI(code, false);
+        });
+    }
 
-            if (!roomSnap.exists()) {
-                // إنشاء الغرفة إذا لم تكن موجودة (أول لاعب)
-                await setDoc(roomRef, {
-                    players: [myName],
-                    storyteller: myName, // الأول هو الحكواتي
-                    phase: "waiting", // waiting, clue, playing, voting
-                    clue: "",
-                    tableCards: [], // {player: name, img: url}
-                    votes: {},
-                    deckIndex: 0
-                });
+    function enterRoomUI(code, hostStatus) {
+        currentRoom = code;
+        isHost = hostStatus;
+        document.getElementById('room-display').innerText = "غرفة رقم: " + code;
+        showScreen('game-screen');
+        if(isHost) document.getElementById('start-btn').classList.remove('hidden');
+        else document.getElementById('start-btn').classList.add('hidden');
+
+        listenToRoom();
+    }
+
+    function leaveRoom() {
+        if(currentRoom && myId) {
+            db.ref('rooms/' + currentRoom + '/players/' + myId).remove();
+            // إلغاء الاستماع (اختياري للتبسيط)
+            location.reload(); 
+        }
+    }
+
+    // 4. الاستماع للتحديثات (Sync)
+    function listenToRoom() {
+        db.ref('rooms/' + currentRoom).on('value', snapshot => {
+            const data = snapshot.val();
+            if (!data) return location.reload(); // الغرفة حذفت
+            gameData = data;
+
+            // تحديث قائمة اللاعبين
+            const list = document.getElementById('players-list');
+            list.innerHTML = "";
+            const players = data.players || {};
+            const playerIds = Object.keys(players);
+            
+            playerIds.forEach(id => {
+                const p = players[id];
+                const isTurn = (data.status === 'playing' && playerIds[data.turnIndex] === id);
+                list.innerHTML += `<li class="player-card ${isTurn ? 'active-turn' : ''}">
+                    ${p.name} <br> 🀄: ${p.count || 0}
+                </li>`;
+            });
+
+            // تحديث حالة اللعبة
+            if (data.status === 'playing') {
+                document.getElementById('lobby-area').classList.add('hidden');
+                document.getElementById('game-area').classList.remove('hidden');
+                renderBoard(data.board || []);
+                
+                // تحديث يدي
+                if (players[myId] && players[myId].hand) {
+                    renderHand(players[myId].hand);
+                }
+
+                // من عليه الدور؟
+                const turnId = playerIds[data.turnIndex];
+                document.getElementById('turn-indicator').innerText = "الدور على: " + players[turnId].name;
+                
+                // زر السحب
+                const stockCount = (data.stock || []).length;
+                if(turnId === myId && stockCount > 0) {
+                     document.getElementById('draw-btn').classList.remove('hidden');
+                     document.getElementById('draw-btn').innerText = `سحب (متبقي ${stockCount})`;
+                } else {
+                     document.getElementById('draw-btn').classList.add('hidden');
+                }
+
             } else {
-                // إضافة اللاعب للقائمة
-                await updateDoc(roomRef, {
-                    players: arrayUnion(myName)
-                });
+                document.getElementById('lobby-area').classList.remove('hidden');
+                document.getElementById('game-area').classList.add('hidden');
             }
 
-            // توزيع كروت مبدئية للاعب (محاكاة)
-            dealCards();
+            // تحديث الشات
+            renderChat(data.chat || {});
+        });
+    }
+
+    // 5. منطق اللعبة (Game Logic)
+    function startGame() {
+        const players = gameData.players;
+        const pIds = Object.keys(players);
+        const count = pIds.length;
+
+        if (count < 2) return alert("تحتاج لاعبين اثنين على الأقل!");
+
+        // 1. توليد الدومينو
+        let tiles = [];
+        for(let i=0; i<=6; i++) {
+            for(let j=i; j<=6; j++) {
+                tiles.push({a: i, b: j});
+            }
+        }
+
+        let handSize = 7; // افتراضي
+
+        // قوانين خاصة
+        if (count === 3) {
+            // إزالة البلاطة 0/0
+            tiles = tiles.filter(t => !(t.a === 0 && t.b === 0));
+            handSize = 9;
+        }
+
+        // خلط الأوراق
+        tiles.sort(() => Math.random() - 0.5);
+
+        // توزيع الأوراق
+        const updates = {};
+        pIds.forEach(id => {
+            const hand = tiles.splice(0, handSize);
+            updates[`players/${id}/hand`] = hand;
+            updates[`players/${id}/count`] = handSize;
+        });
+
+        // المتبقي يذهب للأرض (stock)
+        updates['stock'] = tiles;
+        updates['board'] = []; // الطاولة فارغة
+        updates['status'] = 'playing';
+        updates['turnIndex'] = 0; // أول شخص دخل يبدأ
+
+        db.ref('rooms/' + currentRoom).update(updates);
+    }
+
+    // رسم يدي
+    function renderHand(hand) {
+        const div = document.getElementById('my-hand');
+        div.innerHTML = "";
+        hand.forEach((tile, index) => {
+            div.innerHTML += `
+            <div class="domino" onclick="playTile(${index})">
+                <div class="half">${tile.a}</div>
+                <div class="half" style="border-top:1px solid #333">${tile.b}</div>
+            </div>`;
+        });
+    }
+
+    // رسم الطاولة (مبسط للعرض فقط)
+    function renderBoard(board) {
+        const div = document.getElementById('game-board');
+        if (!board || board.length === 0) {
+            div.innerHTML = '<span style="color: white;">الطاولة فارغة - العب أي ورقة</span>';
+            return;
+        }
+        div.innerHTML = "";
+        board.forEach(tile => {
+             // عرض مبسط بجانب بعضهم
+             div.innerHTML += `
+            <div class="domino domino-h" style="margin: 0 2px;">
+                <div class="half" style="border-right:1px solid #333">${tile.a}</div>
+                <div class="half">${tile.b}</div>
+            </div>`;
+        });
+    }
+
+    // محاولة لعب ورقة (المنطق الأساسي)
+    function playTile(tileIndex) {
+        // تحقق هل هو دوري؟
+        const pIds = Object.keys(gameData.players);
+        if (pIds[gameData.turnIndex] !== myId) return alert("ليس دورك!");
+
+        const myHand = gameData.players[myId].hand;
+        const tile = myHand[tileIndex];
+        let board = gameData.board || [];
+        
+        // منطق المطابقة (مبسط للمثال)
+        let played = false;
+        let newBoard = [...board];
+
+        if (board.length === 0) {
+            newBoard.push(tile);
+            played = true;
+        } else {
+            const leftEnd = newBoard[0].a;
+            const rightEnd = newBoard[newBoard.length-1].b;
+
+            // محاولة وضعها يمين أو يسار (يجب إضافة منطق عكس الورقة إذا لزم الأمر)
+            // هذا المنطق يحتاج توسيع لقلب الورقة {a,b} -> {b,a} لتركب صح
+            // للمثال: سنقبل أي ورقة ونضيفها للنهاية (تحتاج تطوير للتحقق الصارم)
             
-            // الاستماع للتغييرات في قاعدة البيانات (Real-time Listener)
-            listenToGame();
-        };
-
-        function dealCards() {
-            // في اللعبة الحقيقية يجب سحب الكروت من الديك المشترك، هنا سنعطي كروت عشوائية للتبسيط
-            myCards = [];
-            for(let i=0; i<6; i++) {
-                myCards.push(imageDeck[Math.floor(Math.random() * imageDeck.length)]);
+            // تحقق بسيط جداً للتجربة:
+            if (tile.a === rightEnd || tile.b === rightEnd) {
+                 if(tile.b === rightEnd) { tile.b = tile.a; tile.a = rightEnd; } // قلب
+                 newBoard.push(tile);
+                 played = true;
+            } else if (tile.a === leftEnd || tile.b === leftEnd) {
+                 // إضافة لليسار (تحتاج unshift وقلب)
+                 if(tile.a === leftEnd) { tile.a = tile.b; tile.b = leftEnd; } // قلب
+                 newBoard.unshift(tile);
+                 played = true;
+            } else {
+                alert("هذه الورقة لا تركب!");
+                return;
             }
-            renderHand();
         }
 
-        // 2. الاستماع اللحظي لحالة اللعبة
-        function listenToGame() {
-            onSnapshot(doc(db, "games", ROOM_ID), (doc) => {
-                currentGameState = doc.data();
-                updateUI();
-            });
-        }
-
-        // 3. تحديث الواجهة بناءً على الحالة
-        function updateUI() {
-            const isStoryteller = currentGameState.storyteller === myName;
-            const phase = currentGameState.phase;
-            const instruction = document.getElementById("game-instruction");
-            const roleEl = document.getElementById("player-role");
+        if (played) {
+            // إزالة الورقة من يدي وتحديث السيرفر
+            myHand.splice(tileIndex, 1);
             
-            roleEl.innerText = isStoryteller ? "الحكواتي 🎩" : "لاعب مشارك 🕵️";
-
-            // إخفاء/إظهار العناصر حسب المرحلة
-            document.getElementById("storyteller-area").style.display = "none";
-            document.getElementById("table-area").style.display = "none";
-            document.getElementById("play-card-btn").style.display = "none";
-            document.getElementById("clue-display").style.display = "none";
-
-            if (phase === "waiting") {
-                instruction.innerText = `في انتظار اللاعبين... (العدد: ${currentGameState.players.length})`;
-                if (isStoryteller && currentGameState.players.length >= 2) { 
-                    // زر لبدء اللعبة (يمكن إضافته) لكن سننتقل تلقائياً للتجربة
-                   startGamePhase();
-                }
-            } 
-            else if (phase === "clue") {
-                if (isStoryteller) {
-                    instruction.innerText = "اختر كارتاً واكتب وصفاً له!";
-                    document.getElementById("storyteller-area").style.display = "block";
-                } else {
-                    instruction.innerText = `الحكواتي ${currentGameState.storyteller} يفكر في وصف...`;
-                }
-            }
-            else if (phase === "playing") {
-                document.getElementById("clue-display").innerText = `الوصف: "${currentGameState.clue}"`;
-                document.getElementById("clue-display").style.display = "block";
-                
-                if (isStoryteller) {
-                     instruction.innerText = "اللاعبون يختارون كروتهم...";
-                } else {
-                    // هل لعبت ورقتي بالفعل؟
-                    const played = currentGameState.tableCards.find(c => c.player === myName);
-                    if (!played) {
-                        instruction.innerText = "اختر كارتاً من يدك يناسب الوصف!";
-                        document.getElementById("play-card-btn").style.display = "inline-block";
-                    } else {
-                        instruction.innerText = "تم اختيار كارتك، في انتظار البقية...";
-                    }
-                }
-            }
-            else if (phase === "voting") {
-                instruction.innerText = "صوّت للكارت الذي تعتقد أنه للحكواتي!";
-                document.getElementById("table-area").style.display = "block";
-                renderTableCards(); // عرض الكروت للتصويت
-                if (!isStoryteller) {
-                    document.getElementById("vote-btn").style.display = "inline-block";
-                }
-            }
-        }
-
-        // 4. وظائف التفاعل (Buttons Actions)
-
-        // رسم كروت اليد
-        function renderHand() {
-            const container = document.getElementById("my-hand");
-            container.innerHTML = "";
-            myCards.forEach(imgUrl => {
-                const div = document.createElement("div");
-                div.className = "card";
-                div.innerHTML = `<img src="${imgUrl}">`;
-                div.onclick = () => {
-                    document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
-                    div.classList.add("selected");
-                    selectedCard = imgUrl;
-                };
-                container.appendChild(div);
-            });
-        }
-
-        // الحكواتي يرسل الوصف والكارت
-        window.submitClue = async () => {
-            const clueText = document.getElementById("clue-input").value;
-            if (!selectedCard || !clueText) return alert("اختر كارت واكتب وصف");
-
-            await updateDoc(doc(db, "games", ROOM_ID), {
-                clue: clueText,
-                phase: "playing",
-                tableCards: arrayUnion({player: myName, img: selectedCard, type: 'storyteller'})
-            });
-            // إزالة الكارت من اليد محلياً
-            removeCardFromHand(selectedCard);
-        };
-
-        // تبديل المرحلة لبدء اللعب (مؤقت للتجربة)
-        async function startGamePhase() {
-           // في الواقع نحتاج زر "ابدأ اللعبة"
-           if(currentGameState.phase === 'waiting') {
-               await updateDoc(doc(db, "games", ROOM_ID), { phase: "clue" });
-           }
-        }
-
-        // اللاعب يرمي كارته
-        window.playCard = async () => {
-            if (!selectedCard) return alert("اختر كارت");
+            let nextIndex = (gameData.turnIndex + 1) % pIds.length;
             
-            await updateDoc(doc(db, "games", ROOM_ID), {
-                tableCards: arrayUnion({player: myName, img: selectedCard, type: 'player'})
+            db.ref('rooms/' + currentRoom).update({
+                board: newBoard,
+                turnIndex: nextIndex,
+                [`players/${myId}/hand`]: myHand,
+                [`players/${myId}/count`]: myHand.length
             });
-            removeCardFromHand(selectedCard);
 
-            // التحقق هل الجميع لعب؟ (بسيط)
-            // if tableCards.length == players.length -> move to voting
-            // هذا المنطق يفضل أن يكون في Cloud Functions لضمان الأمان، لكن يمكن عمله هنا
-            if (currentGameState.tableCards.length + 1 >= currentGameState.players.length) {
-                 await updateDoc(doc(db, "games", ROOM_ID), { phase: "voting" });
+            // فحص الفوز
+            if (myHand.length === 0) {
+                alert("مبروووك! لقد فزت!");
+                db.ref('rooms/' + currentRoom).update({ status: 'finished' });
             }
-        };
-
-        function removeCardFromHand(url) {
-            myCards = myCards.filter(c => c !== url);
-            renderHand();
-            selectedCard = null;
         }
+    }
 
-        // عرض كروت الطاولة للتصويت
-        function renderTableCards() {
-            const container = document.getElementById("table-cards");
-            container.innerHTML = "";
-            // يجب خلط الكروت هنا حتى لا يعرف أحد كارت الحكواتي
-            // سنعرضها كما هي للتبسيط
-            currentGameState.tableCards.forEach(cardObj => {
-                const div = document.createElement("div");
-                div.className = "card";
-                div.innerHTML = `<img src="${cardObj.img}">`;
-                
-                // لا يمكنني التصويت لنفسي
-                if (cardObj.player !== myName) {
-                    div.onclick = () => {
-                        document.querySelectorAll("#table-cards .card").forEach(c => c.classList.remove("selected"));
-                        div.classList.add("selected");
-                        selectedCard = cardObj.player; // نصوت لاسم اللاعب صاحب الكارت
-                    };
-                } else {
-                    div.style.opacity = "0.5"; // كارتي أنا
-                    div.style.cursor = "default";
-                }
-                container.appendChild(div);
-            });
-        }
+    function drawTile() {
+        let stock = gameData.stock || [];
+        if (stock.length === 0) return alert("لا يوجد ورق!");
+        
+        const newTile = stock.pop();
+        const myHand = gameData.players[myId].hand || [];
+        myHand.push(newTile);
 
-        window.submitVote = async () => {
-            if(!selectedCard) return alert("من فضلك صوّت لكارت");
-            // إرسال التصويت...
-            alert("تم التصويت! (نهاية الجولة التجريبية)");
-            // هنا يتم تحديث Score والعودة لمرحلة clue مع حكواتي جديد
-        };
+        db.ref('rooms/' + currentRoom).update({
+            stock: stock,
+            [`players/${myId}/hand`]: myHand,
+            [`players/${myId}/count`]: myHand.length
+        });
+    }
 
-    </script>
+    // 6. نظام الشات
+    function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const msg = input.value.trim();
+        if(!msg) return;
+        
+        db.ref('rooms/' + currentRoom + '/chat').push({
+            name: myName,
+            text: msg,
+            time: Date.now()
+        });
+        input.value = "";
+    }
+
+    function renderChat(chatData) {
+        const box = document.getElementById('chat-box');
+        box.innerHTML = "";
+        Object.values(chatData).forEach(msg => {
+            box.innerHTML += `<div class="msg"><strong>${msg.name}:</strong> ${msg.text}</div>`;
+        });
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // أدوات مساعدة
+    function showScreen(id) {
+        ['login-screen', 'menu-screen', 'game-screen'].forEach(s => document.getElementById(s).classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+</script>
+
 </body>
 </html>
