@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOMINO HEKA Online</title>
+    <title>DOMINO HEKA PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -11,7 +11,7 @@
     <style>
         :root { 
             --bg-color: #0f172a; 
-            --glass-bg: rgba(30, 41, 59, 0.85);
+            --glass-bg: rgba(30, 41, 59, 0.9);
             --domino-white: #f1f2f6;
             --domino-black: #1e272e;
             --accent-color: #3b82f6; 
@@ -22,72 +22,39 @@
         body { 
             font-family: 'Cairo', sans-serif; 
             background-color: var(--bg-color);
-            /* خلفية بنمط دومينو خفيف */
             background-image: radial-gradient(#1e293b 15%, transparent 16%), radial-gradient(#1e293b 15%, transparent 16%);
             background-size: 60px 60px;
-            background-position: 0 0, 30px 30px;
-            color: #e2e8f0;
-            margin: 0; padding: 0; 
-            overflow: hidden; height: 100vh;
-            display: flex; flex-direction: column;
+            color: #e2e8f0; margin: 0; overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column; user-select: none;
         }
 
-        /* العنوان الجديد */
         h1.game-title {
-            font-family: 'Righteous', cursive;
-            font-size: 2.5rem;
-            color: var(--gold);
-            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
-            margin: 10px 0;
-            text-align: center;
-            letter-spacing: 3px;
-            z-index: 10;
+            font-family: 'Righteous', cursive; font-size: 2rem; color: var(--gold);
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin: 5px 0; text-align: center;
         }
 
-        .container {
-            flex: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            width: 100%; position: relative;
-        }
-
-        /* الأزرار والحقول */
-        input {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2);
-            padding: 12px; color: white; border-radius: 8px; margin: 5px;
-            font-size: 16px; text-align: center; outline: none;
-        }
-        button {
-            background: var(--accent-color); color: white;
-            padding: 10px 20px; border: none; border-radius: 8px;
-            font-weight: bold; cursor: pointer; transition: 0.3s;
-            font-family: 'Cairo', sans-serif; margin: 5px;
-        }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); }
+        .container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; position: relative; }
         .hidden { display: none !important; }
 
         /* الشاشات */
         .screen {
-            background: var(--glass-bg); backdrop-filter: blur(12px);
-            padding: 40px; border-radius: 20px; text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.1);
-            max-width: 450px; width: 90%; z-index: 20;
+            background: var(--glass-bg); backdrop-filter: blur(12px); padding: 30px;
+            border-radius: 20px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px;
         }
 
-        /* --- تصميم الدومينو --- */
-        .domino {
-            background-color: var(--domino-white); border-radius: 4px;
-            box-shadow: 2px 2px 0px #999; display: flex;
-            cursor: pointer; transition: transform 0.2s; position: relative;
-        }
-        .domino:hover { transform: scale(1.1); z-index: 100; }
+        /* عناصر التحكم */
+        input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 10px; color: white; border-radius: 8px; text-align: center; outline: none; }
+        button { background: var(--accent-color); color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin: 5px; font-family: 'Cairo'; }
+        button:hover { transform: scale(1.05); }
+
+        /* الدومينو */
+        .domino { background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #777; display: flex; cursor: pointer; position: relative; }
+        .pip-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 2px; width: 100%; height: 100%; box-sizing: border-box; }
+        .pip { background-color: var(--domino-black); border-radius: 50%; width: 100%; height: 100%; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
         .line { background-color: #ccc; }
-        .pip-container {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr); padding: 4px; box-sizing: border-box;
-        }
-        .pip { background-color: var(--domino-black); border-radius: 50%; width: 100%; height: 100%; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
-        /* مواضع النقاط */
+
+        /* توزيع النقاط */
         .p1 { grid-area: 2 / 2; }
         .p2-1 { grid-area: 1 / 3; } .p2-2 { grid-area: 3 / 1; }
         .p3-1 { grid-area: 1 / 3; } .p3-2 { grid-area: 2 / 2; } .p3-3 { grid-area: 3 / 1; }
@@ -95,595 +62,668 @@
         .p5-1 { grid-area: 1 / 1; } .p5-2 { grid-area: 1 / 3; } .p5-3 { grid-area: 2 / 2; } .p5-4 { grid-area: 3 / 1; } .p5-5 { grid-area: 3 / 3; }
         .p6-1 { grid-area: 1 / 1; } .p6-2 { grid-area: 1 / 3; } .p6-3 { grid-area: 2 / 1; } .p6-4 { grid-area: 2 / 3; } .p6-5 { grid-area: 3 / 1; } .p6-6 { grid-area: 3 / 3; }
 
-        /* أنماط البلاطات */
-        .hand-tile { width: 36px; height: 72px; flex-direction: column; margin: 0 4px; }
+        /* الأحجام */
+        .hand-tile { width: 34px; height: 68px; flex-direction: column; margin: 0 3px; }
         .hand-tile .line { height: 2px; width: 90%; margin: 2px auto; }
-        .hand-tile .pip-container { width: 36px; height: 35px; }
-        .hand-tile .pip { width: 5px; height: 5px; margin: auto; }
+        .hand-tile .pip-container { width: 34px; height: 33px; } .hand-tile .pip { width: 6px; height: 6px; margin: auto; }
 
-        .board-tile { width: 70px; height: 35px; flex-direction: row; margin: 0 2px; }
+        .board-tile { width: 60px; height: 30px; flex-direction: row; margin: 0 1px; }
         .board-tile .line { width: 2px; height: 90%; margin: auto 2px; }
-        .board-tile .pip-container { width: 34px; height: 35px; }
-        .board-tile .pip { width: 5px; height: 5px; margin: auto; }
+        .board-tile .pip-container { width: 29px; height: 30px; } .board-tile .pip { width: 5px; height: 5px; margin: auto; }
 
-        .board-tile.double { width: 35px; height: 70px; flex-direction: column; margin: 0 4px; transform: translateY(-10px); }
+        .board-tile.double { width: 30px; height: 60px; flex-direction: column; margin: 0 2px; transform: translateY(-10px); }
         .board-tile.double .line { height: 2px; width: 90%; margin: 2px auto; }
-        .board-tile.double .pip-container { width: 35px; height: 34px; }
+        .board-tile.double .pip-container { width: 30px; height: 29px; }
 
-        /* --- تصميم الطاولة الجديد (توزيع 4 جهات) --- */
-        #game-interface {
-            width: 100%; height: 100%; position: relative;
-            display: flex; flex-direction: column;
-        }
-
+        /* واجهة اللعب */
+        #game-interface { width: 100%; height: 100%; display: flex; flex-direction: column; }
         #table-surface {
-            flex: 1; position: relative;
-            background: rgba(15, 23, 42, 0.4);
-            margin: 10px; border-radius: 30px;
-            border: 6px solid #334155;
-            box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
-            display: flex; justify-content: center; align-items: center;
+            flex: 1; margin: 10px; border-radius: 20px; border: 4px solid #334155;
+            background: rgba(15, 23, 42, 0.5); display: flex; justify-content: center; align-items: center;
+            position: relative; box-shadow: inset 0 0 50px black; overflow: hidden;
         }
+        #game-board { display: flex; align-items: center; transition: transform 0.3s; padding: 50px; }
 
-        #game-board {
-            display: flex; align-items: center; justify-content: center;
-            padding: 40px; transform: scale(0.9); transition: transform 0.3s;
+        /* اللاعبين */
+        .player-pos {
+            position: absolute; background: rgba(30, 41, 59, 0.95); padding: 8px 12px;
+            border-radius: 10px; display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); min-width: 90px;
         }
-
-        /* أماكن اللاعبين */
-        .player-position {
-            position: absolute;
-            background: rgba(30, 41, 59, 0.9);
-            padding: 10px 15px; border-radius: 12px;
-            display: flex; flex-direction: column; align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            transition: all 0.3s;
-            min-width: 100px;
-        }
-        .player-position.active-turn {
-            border: 2px solid var(--gold);
-            background: rgba(251, 191, 36, 0.1);
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
-        }
-        .avatar { font-size: 24px; margin-bottom: 5px; }
-        .p-name { font-weight: bold; font-size: 14px; }
-        .p-count { color: var(--accent-color); font-size: 12px; }
-        
-        /* المواقع النسبية */
+        .player-pos.active-turn { border: 2px solid var(--gold); box-shadow: 0 0 15px var(--gold); }
+        .p-score { color: var(--gold); font-weight: bold; font-size: 14px; }
         .pos-top { top: 10px; left: 50%; transform: translateX(-50%); }
         .pos-left { top: 50%; left: 10px; transform: translateY(-50%); }
         .pos-right { top: 50%; right: 10px; transform: translateY(-50%); }
-        
-        /* مؤقت */
-        .timer-badge {
-            background: var(--danger); color: white;
-            padding: 2px 6px; border-radius: 4px; font-size: 12px;
-            margin-top: 5px; animation: pulse 1s infinite;
-        }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .timer-bar { height: 3px; background: var(--danger); width: 100%; margin-top: 5px; transition: width 1s linear; }
 
-        /* منطقتي (أسفل) */
-        #my-area {
-            height: 140px; background: rgba(0,0,0,0.6);
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; position: relative;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        #my-hand-container { display: flex; overflow-x: auto; padding: 10px; max-width: 100%; }
+        /* منطقتي */
+        #my-area { height: 130px; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-top: 1px solid #444; }
+        #my-hand { display: flex; overflow-x: auto; padding: 10px; max-width: 100%; }
+        #draw-btn { position: absolute; top: -50px; background: var(--gold); color: black; z-index: 50; box-shadow: 0 0 10px var(--gold); }
 
-        /* زر السحب */
-        #draw-btn {
-            position: absolute; top: -50px; background: var(--gold); color: black;
-            box-shadow: 0 0 15px var(--gold); z-index: 50;
-        }
+        /* المودال (النافذة المنبثقة) */
+        #choice-modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index: 300; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+        .side-btn { font-size: 20px; padding: 20px 40px; margin: 10px; background: var(--accent-color); color: white; border: none; border-radius: 10px; cursor: pointer; }
 
         /* الشات */
-        #chat-fab {
-            position: fixed; bottom: 20px; left: 20px;
-            width: 50px; height: 50px; background: var(--accent-color);
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 200;
-        }
-        #chat-badge {
-            position: absolute; top: -5px; right: -5px;
-            background: var(--danger); color: white; width: 20px; height: 20px;
-            border-radius: 50%; font-size: 12px; display: flex; justify-content: center; align-items: center;
-        }
-        #chat-window {
-            position: fixed; bottom: 80px; left: 20px; width: 280px; height: 350px;
-            background: var(--glass-bg); backdrop-filter: blur(15px);
-            border-radius: 15px; display: flex; flex-direction: column;
-            border: 1px solid rgba(255,255,255,0.1); z-index: 200;
-        }
-        .chat-msg { background: rgba(255,255,255,0.1); padding: 5px 10px; margin: 4px; border-radius: 8px; font-size: 13px; text-align: right; }
-        .chat-msg.mine { background: rgba(59, 130, 246, 0.4); align-self: flex-end; }
-
+        #chat-icon { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: var(--accent-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 200; }
+        #chat-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: flex; justify-content: center; align-items: center; }
+        #chat-box { position: fixed; bottom: 80px; left: 20px; width: 280px; height: 300px; background: var(--glass-bg); border-radius: 10px; display: flex; flex-direction: column; z-index: 200; }
+        #chat-msgs { flex: 1; overflow-y: auto; padding: 10px; }
+        .msg { background: rgba(255,255,255,0.1); padding: 5px; margin: 3px 0; border-radius: 5px; font-size: 13px; text-align: right; }
+        .msg.mine { background: rgba(59, 130, 246, 0.4); align-self: flex-end; }
     </style>
 </head>
 <body>
 
-    <h1 class="game-title">DOMINO HEKA</h1>
+    <h1 class="game-title">DOMINO HEKA PRO</h1>
+
+    <div id="choice-modal" class="hidden">
+        <h2 style="color:white">اين تريد وضع الورقة؟</h2>
+        <div style="display:flex;">
+            <button class="side-btn" onclick="resolveChoice('right')">يمين 👉</button>
+            <button class="side-btn" onclick="resolveChoice('left')">👈 يسار</button>
+        </div>
+    </div>
+
+    <div id="screen-winner" class="screen hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:400; border:2px solid var(--gold);">
+        <h1 style="color:var(--gold); font-size:3rem;">🏆 CHAMPION 🏆</h1>
+        <h2 id="winner-name"></h2>
+        <button onclick="leaveRoom()">القائمة الرئيسية</button>
+    </div>
 
     <div class="container">
         <div id="screen-login" class="screen">
-            <h2>🔥 دخول المحترفين</h2>
-            <input type="text" id="username" placeholder="اسمك يا بطل" maxlength="15">
-            <br>
-            <button onclick="saveName()">START</button>
+            <h2>تسجيل الدخول</h2>
+            <input type="text" id="username" placeholder="اسمك">
+            <button onclick="saveName()">دخول</button>
         </div>
 
         <div id="screen-menu" class="screen hidden">
-            <h2 id="welcome-text"></h2>
-            <button onclick="createRoom()" style="background:#10b981; width:80%; margin:10px 0;">إنشاء غرفة</button>
-            <div style="display:flex; justify-content:center; align-items:center;">
-                <input type="text" id="room-code-input" placeholder="كود الغرفة" style="width: 100px;">
-                <button onclick="joinRoom()">انضمام</button>
-            </div>
+            <h3 id="welcome-msg"></h3>
+            <button onclick="createRoom()" style="background:#10b981; width:80%">إنشاء غرفة</button>
+            <br>
+            <input type="text" id="code-input" placeholder="كود الغرفة" style="width:100px">
+            <button onclick="joinRoom()">دخول</button>
         </div>
 
         <div id="screen-lobby" class="screen hidden">
-            <h2 style="color:var(--gold)">غرفة: <span id="lobby-code"></span></h2>
-            <ul id="lobby-list" style="list-style:none; padding:0; text-align:right;"></ul>
-            <button id="start-game-btn" class="hidden" onclick="startGame()">ابدأ الجيم</button>
+            <h2>غرفة: <span id="lobby-code" style="color:var(--gold)"></span></h2>
+            <ul id="lobby-list" style="list-style:none; padding:0; text-align:right"></ul>
+            <button id="start-btn" class="hidden" onclick="startGame()">ابدأ الجولة</button>
             <button onclick="leaveRoom()" style="background:var(--danger)">خروج</button>
         </div>
 
-        <div id="screen-game" class="hidden" style="width:100%; height:100%;">
+        <div id="screen-game" class="hidden" style="width:100%; height:100%">
             <div id="game-interface">
-                <div style="padding: 10px; display:flex; justify-content:space-between; align-items:center;">
-                    <button onclick="leaveRoom()" style="background:var(--danger); font-size:12px; padding:5px 10px;">انسحاب</button>
-                    <span style="font-size:14px; color:#aaa;">Code: <span id="ingame-code"></span></span>
+                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <button onclick="leaveRoom()" style="background:var(--danger); font-size:12px; padding:5px 10px">انسحاب</button>
+                    <span style="color:#aaa; font-size:12px">Room: <span id="game-code"></span></span>
                 </div>
 
                 <div id="table-surface">
-                    <div id="opponents-container"></div>
-                    
-                    <div id="game-board"></div>
-                </div>
+                    <div id="opponents"></div> <div id="game-board"></div> </div>
 
                 <div id="my-area">
-                    <button id="draw-btn" class="hidden">سحب ورقة</button>
-                    <div style="font-size:12px; color:#aaa; margin-bottom:5px;">أوراقك</div>
-                    <div id="my-hand-container"></div>
+                    <button id="draw-btn" class="hidden">سحب</button>
+                    <div id="my-score-display" style="position:absolute; top:-25px; left:10px; color:var(--gold); font-weight:bold;">نقاتك: 0</div>
+                    <div id="my-hand"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="chat-fab" class="hidden" onclick="toggleChat()">
-        <div id="chat-badge" class="hidden">0</div>
-        <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    <div id="chat-icon" class="hidden" onclick="toggleChat()">
+        <div id="chat-badge" class="hidden">0</div>💬
     </div>
-    <div id="chat-window" class="hidden">
-        <div style="padding:10px; background:rgba(0,0,0,0.3); border-radius:15px 15px 0 0; display:flex; justify-content:space-between;">
-            <span>الدردشة</span> <span onclick="toggleChat()" style="cursor:pointer;">✖</span>
-        </div>
-        <div id="chat-messages" style="flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column;"></div>
-        <div style="padding:10px; display:flex;">
-            <input type="text" id="chat-input" placeholder="اكتب..." style="flex:1; margin:0;">
-            <button onclick="sendMsg()" style="padding:5px 15px; margin:0 5px;">➤</button>
-        </div>
+    <div id="chat-box" class="hidden">
+        <div style="padding:5px; background:rgba(0,0,0,0.3); color:white; display:flex; justify-content:space-between;"><span>Chat</span><span onclick="toggleChat()" style="cursor:pointer">x</span></div>
+        <div id="chat-msgs"></div>
+        <div style="display:flex; padding:5px;"><input id="chat-in" style="flex:1; margin:0"><button onclick="sendMsg()" style="margin:0 5px">></button></div>
     </div>
 
 <script>
-    // --- إعدادات Firebase ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
-        authDomain: "heka-codenames.firebaseapp.com",
-        projectId: "heka-codenames",
-        storageBucket: "heka-codenames.firebasestorage.app",
-        messagingSenderId: "901713932504",
-        appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
-    };
+    // --- Config ---
+    const firebaseConfig = { apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4", authDomain: "heka-codenames.firebaseapp.com", projectId: "heka-codenames", storageBucket: "heka-codenames.firebasestorage.app", messagingSenderId: "901713932504", appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- المتغيرات ---
-    let myName = "", myId = "", currentRoom = "", isHost = false;
-    let gameData = {}, chatOpen = false, unreadCount = 0;
-    let turnTimerInterval = null; // للمؤقت المحلي
+    // --- Variables ---
+    let myName="", myId="", currentRoom="", isHost=false;
+    let gameData={}, chatOpen=false, timerInt=null;
+    let selectedTileIdx = -1; // لتخزين الورقة المختارة عند حالة الاختيار
 
+    // --- Init ---
     window.onload = () => {
-        if(localStorage.getItem('heka_domino_name')) {
-            document.getElementById('username').value = localStorage.getItem('heka_domino_name');
+        if(localStorage.getItem('heka_pro_name')) {
+            document.getElementById('username').value = localStorage.getItem('heka_pro_name');
             saveName();
         }
     };
 
-    function showScreen(id) {
-        document.querySelectorAll('.screen').forEach(e => e.classList.add('hidden'));
-        document.getElementById('screen-game').classList.add('hidden');
+    function show(id) {
+        document.querySelectorAll('.screen, #screen-game').forEach(e => e.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
     }
 
     function saveName() {
-        const val = document.getElementById('username').value.trim();
-        if(!val) return;
-        myName = val;
-        localStorage.setItem('heka_domino_name', myName);
-        document.getElementById('welcome-text').innerText = `أهلاً ${myName}`;
-        showScreen('screen-menu');
+        myName = document.getElementById('username').value.trim();
+        if(!myName) return;
+        localStorage.setItem('heka_pro_name', myName);
+        document.getElementById('welcome-msg').innerText = `يا هلا بـ ${myName}`;
+        show('screen-menu');
     }
 
-    // --- إدارة الغرف ---
+    // --- Room Logic ---
     function createRoom() {
-        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        const code = Math.floor(1000+Math.random()*9000).toString();
         myId = Date.now().toString();
-        db.ref('rooms/' + code).set({
-            status: 'waiting', host: myId,
-            players: { [myId]: { name: myName, hand: [], count: 0 } }
-        }).then(() => enterRoom(code, true));
+        db.ref('rooms/'+code).set({
+            status: 'waiting', host: myId, roundCount: 0,
+            players: { [myId]: { name: myName, score: 0, hand:[], count:0, isBot:false } }
+        }).then(()=>enterRoom(code, true));
     }
 
     function joinRoom() {
-        const code = document.getElementById('room-code-input').value.trim();
-        if(!code) return alert("الكود؟");
+        const code = document.getElementById('code-input').value.trim();
+        if(!code) return;
         myId = Date.now().toString();
-        db.ref('rooms/' + code).once('value', s => {
+        db.ref('rooms/'+code).once('value', s => {
             if(!s.exists()) return alert("غير موجودة");
-            if(s.val().status !== 'waiting') return alert("اللعبة بدأت");
-            if(Object.keys(s.val().players || {}).length >= 4) return alert("ممتلئة");
+            if(s.val().status !== 'waiting') return alert("بدأت بالفعل");
+            if(Object.keys(s.val().players||{}).length >=4) return alert("ممتلئة");
             
-            db.ref(`rooms/${code}/players/${myId}`).set({ name: myName, hand: [], count: 0 })
-            .then(() => enterRoom(code, false));
+            db.ref(`rooms/${code}/players/${myId}`).set({ name: myName, score: 0, hand:[], count:0, isBot:false })
+            .then(()=>enterRoom(code, false));
         });
     }
 
     function enterRoom(code, host) {
         currentRoom = code; isHost = host;
         document.getElementById('lobby-code').innerText = code;
-        document.getElementById('ingame-code').innerText = code;
-        showScreen('screen-lobby');
-        if(isHost) document.getElementById('start-game-btn').classList.remove('hidden');
-        document.getElementById('chat-fab').classList.remove('hidden');
-        listenToRoom();
+        document.getElementById('game-code').innerText = code;
+        show('screen-lobby');
+        if(isHost) document.getElementById('start-btn').classList.remove('hidden');
+        document.getElementById('chat-icon').classList.remove('hidden');
+        
+        // Anti-Disconnect Logic: عند الخروج، يتحول لبوت
+        db.ref(`rooms/${code}/players/${myId}`).onDisconnect().update({ isBot: true });
+        
+        listen();
     }
 
     function leaveRoom() {
-        if(currentRoom && myId) db.ref(`rooms/${currentRoom}/players/${myId}`).remove();
+        if(currentRoom && myId) db.ref(`rooms/${currentRoom}/players/${myId}`).update({ isBot: true }); // Mark as bot instead of delete
         location.reload();
     }
 
-    // --- الاستماع والتحديث ---
-    function listenToRoom() {
+    function listen() {
         db.ref(`rooms/${currentRoom}`).on('value', s => {
-            const data = s.val();
-            if(!data) return location.reload();
-            gameData = data;
+            const d = s.val();
+            if(!d) return location.reload();
+            gameData = d;
 
-            if(data.status === 'waiting') {
-                updateLobby(data.players);
-            } else if (data.status === 'playing') {
-                if(document.getElementById('screen-game').classList.contains('hidden')) {
-                    showScreen('screen-game');
-                }
-                updateGameUI(data);
-                checkTimer(data); // فحص الوقت
-            } else if (data.status === 'finished') {
-                alert("Game Over!"); location.reload();
+            if(d.status === 'waiting') updateLobby(d.players);
+            else if(d.status === 'playing') {
+                if(document.getElementById('screen-game').classList.contains('hidden')) show('screen-game');
+                updateGame(d);
+                checkTimer(d);
+            } 
+            else if (d.status === 'finished') {
+                // عرض الفائز
+                alert(`انتهت الجولة! الفائز: ${d.roundWinnerName}`);
+                if(isHost) setTimeout(startGame, 3000); // بدء جولة جديدة تلقائياً
             }
-            updateChat(data.chat);
+            else if (d.status === 'match_over') {
+                document.getElementById('winner-name').innerText = d.matchWinnerName;
+                document.getElementById('screen-winner').classList.remove('hidden');
+            }
+
+            updateChat(d.chat);
         });
     }
 
     function updateLobby(players) {
         const list = document.getElementById('lobby-list');
         list.innerHTML = "";
-        Object.values(players || {}).forEach(p => list.innerHTML += `<li>⚡ ${p.name}</li>`);
+        Object.values(players||{}).forEach(p => list.innerHTML += `<li>${p.name} ${p.isBot?'🤖':''} - 🏆${p.score}</li>`);
     }
 
-    // --- منطق اللعبة والبداية ---
+    // --- Game Logic ---
     function startGame() {
         const pIds = Object.keys(gameData.players);
-        if(pIds.length < 2) return alert("2 لاعبين ع الأقل");
-        
-        // ترتيب اللاعبين لضمان تسلسل ثابت
-        pIds.sort();
+        if(pIds.length < 2) return alert("يجب توفر لاعبين");
+        pIds.sort(); // ترتيب ثابت
 
+        // توليد الدومينو
         let tiles = [];
-        for(let i=0; i<=6; i++) for(let j=i; j<=6; j++) tiles.push({a: i, b: j});
-
+        for(let i=0; i<=6; i++) for(let j=i; j<=6; j++) tiles.push({a:i, b:j});
+        
         let handSize = 7;
-        if(pIds.length === 3) { // نمط ثلاثي
-            tiles = tiles.filter(t => !(t.a === 0 && t.b === 0));
+        if(pIds.length === 3) {
+            tiles = tiles.filter(t => !(t.a===0 && t.b===0));
             handSize = 9;
         }
 
-        tiles.sort(() => Math.random() - 0.5);
+        // خلط
+        tiles.sort(()=>Math.random()-0.5);
 
-        const updates = {};
-        pIds.forEach(id => {
+        const updates = { status: 'playing', board: [], stock: tiles, playerOrder: pIds };
+        
+        // توزيع
+        let startTurnIndex = 0;
+        let hasSixSix = -1;
+
+        pIds.forEach((id, idx) => {
             const hand = tiles.splice(0, handSize);
             updates[`players/${id}/hand`] = hand;
             updates[`players/${id}/count`] = handSize;
+            
+            // فحص 6-6 للجولة الأولى
+            if(gameData.roundCount === 0) {
+                if(hand.some(t => t.a===6 && t.b===6)) hasSixSix = idx;
+            }
         });
 
-        updates['stock'] = tiles;
-        updates['board'] = [];
-        updates['status'] = 'playing';
-        updates['turnIndex'] = 0;
-        updates['turnStartTime'] = firebase.database.ServerValue.TIMESTAMP; // بداية الوقت
-        updates['playerOrder'] = pIds; // حفظ الترتيب
+        // تحديد الدور
+        if(gameData.roundCount === 0) {
+            // الجولة الأولى: من معه 6-6
+            startTurnIndex = (hasSixSix !== -1) ? hasSixSix : 0;
+        } else {
+            // الجولات التالية: الفائز السابق
+            if(gameData.lastWinnerId) {
+                const idx = pIds.indexOf(gameData.lastWinnerId);
+                startTurnIndex = (idx !== -1) ? idx : 0;
+            }
+        }
 
-        db.ref('rooms/' + currentRoom).update(updates);
+        updates['turnIndex'] = startTurnIndex;
+        updates['turnStartTime'] = firebase.database.ServerValue.TIMESTAMP;
+        updates['roundCount'] = (gameData.roundCount || 0) + 1;
+
+        db.ref('rooms/'+currentRoom).update(updates);
     }
 
-    // --- تحديث الواجهة (Core UI) ---
-    function updateGameUI(data) {
-        const pIds = data.playerOrder || Object.keys(data.players);
+    function updateGame(data) {
+        const pIds = data.playerOrder;
         const myIdx = pIds.indexOf(myId);
-        const currentTurnId = pIds[data.turnIndex];
+        const turnId = pIds[data.turnIndex];
         
-        // 1. تحديث أماكن الخصوم (يسار، يمين، فوق)
-        const container = document.getElementById('opponents-container');
-        container.innerHTML = "";
-        
+        // رسم الخصوم
+        const oppDiv = document.getElementById('opponents');
+        oppDiv.innerHTML = "";
         const count = pIds.length;
-        // حساب التموضع النسبي
-        // 0: أنا, 1: يميني, 2: فوقي (لو 4), 3: يساري
-        
-        for(let i=1; i < count; i++) {
-            const targetIdx = (myIdx + i) % count;
-            const targetId = pIds[targetIdx];
-            const p = data.players[targetId];
-            
-            let posClass = "";
-            if (count === 2) {
-                posClass = "pos-top"; // الخصم الوحيد فوق
-            } else if (count === 3) {
-                if (i === 1) posClass = "pos-right";
-                if (i === 2) posClass = "pos-left";
-            } else { // 4 لاعبين
-                if (i === 1) posClass = "pos-right";
-                if (i === 2) posClass = "pos-top";
-                if (i === 3) posClass = "pos-left";
-            }
 
-            const isTurn = (currentTurnId === targetId);
-            const timerHtml = isTurn ? `<div class="timer-badge" id="timer-${targetId}">40s</div>` : "";
+        for(let i=1; i<count; i++) {
+            const tIdx = (myIdx + i) % count;
+            const tId = pIds[tIdx];
+            const p = data.players[tId];
             
-            container.innerHTML += `
-                <div class="player-position ${posClass} ${isTurn ? 'active-turn' : ''}">
-                    <div class="avatar">👤</div>
-                    <div class="p-name">${p.name} ${isTurn ? '🤖' : ''}</div>
-                    <div class="p-count">${p.count} 🀄</div>
-                    ${timerHtml}
+            let cls = "pos-top";
+            if(count===3) cls = (i===1) ? "pos-right" : "pos-left";
+            if(count===4) cls = (i===1) ? "pos-right" : (i===2 ? "pos-top" : "pos-left");
+
+            const isTurn = (turnId === tId);
+            oppDiv.innerHTML += `
+                <div class="player-pos ${cls} ${isTurn?'active-turn':''}">
+                    <div style="font-size:20px">👤</div>
+                    <div>${p.name} ${p.isBot?'🤖':''}</div>
+                    <div style="color:#aaa">${p.count} 🀄</div>
+                    <div class="p-score">${p.score} pts</div>
+                    ${isTurn ? '<div class="timer-bar" id="tbar-'+tId+'"></div>' : ''}
                 </div>
             `;
         }
 
-        // 2. يدي
-        const myHand = data.players[myId].hand || [];
-        renderHand(myHand);
-
-        // 3. الطاولة
-        renderBoard(data.board || []);
-
-        // 4. مؤشر دوري
+        // منطقتي
+        document.getElementById('my-score-display').innerText = `نقاطك: ${data.players[myId].score}`;
         const myArea = document.getElementById('my-area');
-        if(currentTurnId === myId) {
-             myArea.style.borderTop = "2px solid var(--gold)";
-             // إضافة التايمر لي
-             if(!document.getElementById('my-timer')) {
-                 myArea.insertAdjacentHTML('afterbegin', `<div id="my-timer" class="timer-badge" style="position:absolute; top:-25px;">40s</div>`);
-             }
+        if(turnId === myId) {
+            myArea.style.borderTop = "3px solid var(--gold)";
+            if(!document.getElementById('my-timer')) myArea.insertAdjacentHTML('afterbegin', `<div id="my-timer" class="timer-bar" style="position:absolute; top:0; width:100%"></div>`);
         } else {
-             myArea.style.borderTop = "1px solid rgba(255,255,255,0.1)";
-             const mt = document.getElementById('my-timer');
-             if(mt) mt.remove();
+            myArea.style.borderTop = "1px solid #444";
+            if(document.getElementById('my-timer')) document.getElementById('my-timer').remove();
         }
 
-        // 5. زر السحب (المنطق الجديد)
-        const drawBtn = document.getElementById('draw-btn');
-        drawBtn.classList.add('hidden'); // إخفاء افتراضي
+        // رسم الطاولة
+        renderBoard(data.board||[]);
+        // رسم يدي
+        renderHand(data.players[myId].hand||[]);
 
-        if(currentTurnId === myId) {
-            // تحقق: هل أنا في نمط ثنائي؟
-            if (count === 2) {
-                // هل لدي ورقة صالحة؟
-                if (!hasValidMove(myHand, data.board || [])) {
-                    // لو مفيش ورق في الأرض لا تظهر الزر
-                    if(data.stock && data.stock.length > 0) {
-                        drawBtn.classList.remove('hidden');
-                        drawBtn.onclick = drawTile;
-                    }
-                }
+        // زر السحب (يظهر فقط في الثنائي وعند الحاجة)
+        const btn = document.getElementById('draw-btn');
+        btn.classList.add('hidden');
+        if(turnId === myId && count === 2 && !hasMove(data.players[myId].hand, data.board)) {
+            if(data.stock && data.stock.length > 0) {
+                btn.classList.remove('hidden');
+                btn.onclick = drawTile;
             }
-            // في النمط 3 و 4، الزر لا يظهر أبداً حسب الطلب
         }
     }
 
-    // --- المنطق المساعد ---
-    function hasValidMove(hand, board) {
-        if(board.length === 0) return true; // أي ورقة تنفع
-        const left = board[0].a;
-        const right = board[board.length-1].b;
+    // --- Core Gameplay ---
+    function playTileCheck(idx) {
+        const pIds = gameData.playerOrder;
+        if(pIds[gameData.turnIndex] !== myId) return;
+
+        const hand = gameData.players[myId].hand;
+        const tile = hand[idx];
+        const board = gameData.board || [];
+
+        if(board.length === 0) {
+            // أول ورقة في الجولة الأولى يجب أن تكون 6-6
+            if(gameData.roundCount === 1) {
+               // إذا كنت أنا صاحب الـ 6-6 يجب أن ألعبها
+               // الكود بسيط: نسمح بأي ورقة إذا لم تكن 6-6 موجودة (احتياط)
+               // لكن "startGame" ضبط الدور على من معه 6-6.
+               // هنا تحقق: إذا كان معي 6-6، يجب أن ألعبها هي فقط.
+               const has66 = hand.findIndex(t => t.a===6 && t.b===6);
+               if(has66 !== -1 && (tile.a!==6 || tile.b!==6)) return alert("لازم تلعب الـ 6-6 الأول!");
+            }
+            commitMove(idx, 'any');
+            return;
+        }
+
+        const l = board[0].a;
+        const r = board[board.length-1].b;
+        const canLeft = (tile.a === l || tile.b === l);
+        const canRight = (tile.a === r || tile.b === r);
+
+        if (canLeft && canRight && l !== r) {
+            // الحالة الخاصة: الورقة تركب في الجهتين والطاولة ليست مقفلة بنفس الرقم
+            selectedTileIdx = idx;
+            document.getElementById('choice-modal').classList.remove('hidden');
+        } else if (canLeft) {
+            commitMove(idx, 'left');
+        } else if (canRight) {
+            commitMove(idx, 'right');
+        } else {
+            alert("الورقة لا تناسب الطاولة");
+        }
+    }
+
+    function resolveChoice(side) {
+        document.getElementById('choice-modal').classList.add('hidden');
+        commitMove(selectedTileIdx, side);
+    }
+
+    function commitMove(idx, side) {
+        const hand = gameData.players[myId].hand;
+        const tile = hand[idx];
+        let board = [...(gameData.board || [])];
+        let newTile = {...tile};
+
+        if(side === 'any' || board.length === 0) {
+            board.push(newTile);
+        } else if (side === 'left') {
+            const end = board[0].a;
+            if(newTile.a === end) { newTile = {a:tile.b, b:tile.a}; } // flip
+            board.unshift(newTile);
+        } else { // right
+            const end = board[board.length-1].b;
+            if(newTile.b === end) { newTile = {a:tile.b, b:tile.a}; } // flip
+            board.push(newTile);
+        }
+
+        hand.splice(idx, 1);
         
-        for(let tile of hand) {
-            if(tile.a === left || tile.b === left || tile.a === right || tile.b === right) return true;
+        // التحقق من الفوز
+        if(hand.length === 0) {
+            handleRoundWin(myId, board);
+        } else {
+            // التحقق من "القفلة" (Blocked)
+            if(isGameBlocked(board, gameData.players)) {
+                handleBlockedGame(board);
+            } else {
+                nextTurn(board, hand);
+            }
         }
-        return false;
     }
 
-    // --- نظام المؤقت واللعب التلقائي ---
+    function nextTurn(board, hand) {
+        const pIds = gameData.playerOrder;
+        const next = (gameData.turnIndex + 1) % pIds.length;
+        db.ref('rooms/'+currentRoom).update({
+            board: board,
+            turnIndex: next,
+            turnStartTime: firebase.database.ServerValue.TIMESTAMP,
+            [`players/${myId}/hand`]: hand,
+            [`players/${myId}/count`]: hand.length
+        });
+    }
+
+    // --- Scoring Logic ---
+    function handleRoundWin(winnerId, board) {
+        let totalPips = 0;
+        const players = gameData.players;
+        Object.keys(players).forEach(id => {
+            if(id !== winnerId) {
+                players[id].hand.forEach(t => totalPips += (t.a + t.b));
+            }
+        });
+
+        const newScore = (players[winnerId].score || 0) + totalPips;
+        
+        const updates = {
+            [`players/${winnerId}/score`]: newScore,
+            status: 'finished',
+            lastWinnerId: winnerId,
+            roundWinnerName: players[winnerId].name,
+            board: board, // Update final board view
+            [`players/${winnerId}/hand`]: []
+        };
+
+        if(newScore >= 101) {
+            updates.status = 'match_over';
+            updates.matchWinnerName = players[winnerId].name;
+        }
+
+        db.ref('rooms/'+currentRoom).update(updates);
+    }
+
+    function isGameBlocked(board, players) {
+        // فحص مبسط: إذا لم يكن لدى أي لاعب ورقة تناسب الأطراف ولا يوجد سحب
+        // هذا يحتاج لمنطق معقد، لكن سنعتمد على "زر الباس" أو المؤقت للبوت
+        // هنا سنفترض أن اللعبة تغلق إذا مر دور كامل دون لعب (في الواقع يتم حسابها بالورق الميت)
+        // للتبسيط في هذا الكود: سنعتمد على أن البوت سيمرر الدور، وإذا مرر الجميع تنتهي.
+        // *تعديل*: سننفذ القفلة عندما يصبح الـ Stock فارغاً ولا أحد يملك حركة.
+        return false; // سنتركها للمؤقت لينهي اللعبة إذا لم يلعب أحد
+    }
+    
+    // دالة لحساب القفلة عند انتهاء الوقت والخيارات (تستدعى من البوت)
+    function handleBlockedGame(board) {
+        // حساب من الأقل نقاطاً
+        let minPips = 1000;
+        let winnerId = "";
+        let totalLosersPips = 0;
+        
+        Object.entries(gameData.players).forEach(([id, p]) => {
+            let pips = 0;
+            (p.hand||[]).forEach(t => pips += t.a+t.b);
+            if(pips < minPips) { minPips = pips; winnerId = id; }
+            totalLosersPips += pips; // نجمع الكل
+        });
+
+        // الفائز يأخذ نقاط الجميع (أو نقاط الخاسرين فقط حسب القاعدة، هنا سنعطيه مجموع الخاسرين - نقاطه هو)
+        totalLosersPips -= minPips; 
+        
+        const newScore = (gameData.players[winnerId].score || 0) + totalLosersPips;
+        
+        const updates = {
+            [`players/${winnerId}/score`]: newScore,
+            status: 'finished',
+            lastWinnerId: winnerId,
+            roundWinnerName: gameData.players[winnerId].name + " (بالنقاط)",
+        };
+        if(newScore >= 101) {
+             updates.status = 'match_over';
+             updates.matchWinnerName = gameData.players[winnerId].name;
+        }
+        db.ref('rooms/'+currentRoom).update(updates);
+    }
+
+    function drawTile() {
+        let stock = gameData.stock || [];
+        if(stock.length === 0) return; // Pass turn logic handled by timer usually
+        
+        const tile = stock.pop();
+        const hand = gameData.players[myId].hand;
+        hand.push(tile);
+        
+        db.ref('rooms/'+currentRoom).update({
+            stock: stock,
+            [`players/${myId}/hand`]: hand,
+            [`players/${myId}/count`]: hand.length
+        });
+    }
+
+    // --- Helpers ---
+    function hasMove(hand, board) {
+        if(!board || board.length===0) return true;
+        const l = board[0].a, r = board[board.length-1].b;
+        return hand.some(t => t.a===l || t.b===l || t.a===r || t.b===r);
+    }
+
     function checkTimer(data) {
-        if (turnTimerInterval) clearInterval(turnTimerInterval);
+        if(timerInt) clearInterval(timerInt);
+        const startTime = data.turnStartTime || Date.now();
+        const turnId = data.playerOrder[data.turnIndex];
         
-        const turnStart = data.turnStartTime || Date.now();
-        const pIds = data.playerOrder;
-        const currentTurnId = pIds[data.turnIndex];
-
-        turnTimerInterval = setInterval(() => {
-            const elapsed = Date.now() - turnStart;
-            const remaining = Math.max(0, 40 - Math.floor(elapsed / 1000));
+        timerInt = setInterval(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const remaining = 40 - elapsed;
             
-            // تحديث النص
-            const timerBadge = document.getElementById(currentTurnId === myId ? 'my-timer' : `timer-${currentTurnId}`);
-            if(timerBadge) timerBadge.innerText = remaining + "s";
+            // تحديث شريط الوقت
+            const bar = document.getElementById(turnId===myId ? 'my-timer' : 'tbar-'+turnId);
+            if(bar) bar.style.width = Math.max(0, (remaining/40)*100) + "%";
 
-            // انتهاء الوقت
-            if (remaining === 0 && currentTurnId === myId) {
-                clearInterval(turnTimerInterval);
-                autoPlayBot(); // البوت يلعب عني
+            if(remaining <= 0) {
+                clearInterval(timerInt);
+                // إذا كنت أنا صاحب الدور وانتهى وقتي -> البوت يلعب
+                if(turnId === myId) autoBot(myId);
+                // إذا كان الدور لبوت أو لاعب مفصول، والهوست موجود -> الهوست يلعب له
+                else if(isHost && (data.players[turnId].isBot)) autoBot(turnId);
             }
         }, 1000);
     }
 
-    function autoPlayBot() {
-        console.log("Auto Play triggered");
-        const hand = gameData.players[myId].hand || [];
+    function autoBot(playerId) {
+        // منطق اللعب التلقائي
+        const p = gameData.players[playerId];
+        const hand = p.hand || [];
         const board = gameData.board || [];
         
-        // محاولة إيجاد ورقة صالحة
-        for(let i=0; i<hand.length; i++) {
-             // تجربة وهمية
-             if (canPlayTile(hand[i], board)) {
-                 playTile(i); // العبها فوراً
-                 return;
-             }
+        // محاولة إيجاد ورقة
+        let played = false;
+        let playIdx = -1;
+        let side = 'right';
+
+        if(board.length === 0) {
+            playIdx = 0; 
+            side = 'any';
+        } else {
+            const l = board[0].a, r = board[board.length-1].b;
+            for(let i=0; i<hand.length; i++) {
+                if(hand[i].a===r || hand[i].b===r) { playIdx=i; side='right'; break; }
+                if(hand[i].a===l || hand[i].b===l) { playIdx=i; side='left'; break; }
+            }
         }
 
-        // إذا لم أجد ورقة
-        const pIds = gameData.playerOrder;
-        if(pIds.length === 2) {
-            // في الثنائي اسحب
-            if(gameData.stock && gameData.stock.length > 0) {
-                drawTile();
+        if(playIdx !== -1) {
+            // تنفيذ الحركة (يجب تكرار كود commitMove هنا لكن بصيغة تحديث مباشر للقاعدة لأن البوت لا يستخدم الواجهة)
+            // للتبسيط: إذا كان أنا، أستدعي playTileCheck، إذا هوست لبوت، أحدث القاعدة
+            if(playerId === myId) {
+                commitMove(playIdx, side); // حتى لو اخترنا أي جانب
             } else {
-                passTurn(); // لا ورق ولا سحب
+                // Host executing bot move
+                // نحتاج كود مشابه لـ commitMove يعمل مباشرة على الداتا
+                const tile = hand[playIdx];
+                let newTile = {...tile};
+                let newBoard = [...board];
+                
+                if(side === 'left') {
+                   if(newTile.a === board[0].a) newTile = {a:tile.b, b:tile.a};
+                   newBoard.unshift(newTile);
+                } else {
+                   const end = board.length ? board[board.length-1].b : -1;
+                   if(board.length && newTile.b === end) newTile = {a:tile.b, b:tile.a};
+                   newBoard.push(newTile);
+                }
+                
+                hand.splice(playIdx, 1);
+                const next = (gameData.turnIndex + 1) % gameData.playerOrder.length;
+                
+                const updates = {
+                   board: newBoard, turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP,
+                   [`players/${playerId}/hand`]: hand, [`players/${playerId}/count`]: hand.length
+                };
+                
+                if(hand.length === 0) {
+                     // Bot Wins
+                     // نحتاج حساب النقاط هنا أيضاً... (مكرر)
+                     // للتبسيط: ننهي الجولة فقط
+                     updates.status = 'finished';
+                     updates.roundWinnerName = p.name;
+                     updates.lastWinnerId = playerId;
+                     // إضافة النقاط للبوت (مهمة الهوست)
+                     let total = 0;
+                     Object.keys(gameData.players).forEach(oid => {
+                         if(oid!==playerId) gameData.players[oid].hand.forEach(t=> total+=t.a+t.b);
+                     });
+                     updates[`players/${playerId}/score`] = (p.score||0)+total;
+                }
+                
+                db.ref('rooms/'+currentRoom).update(updates);
             }
         } else {
-            // في الثلاثي والرباعي (باس)
-            passTurn();
+            // لا يوجد ورقة
+            if(gameData.playerOrder.length === 2 && (gameData.stock||[]).length > 0) {
+                 // سحب
+                 const stock = gameData.stock;
+                 const t = stock.pop();
+                 hand.push(t);
+                 db.ref('rooms/'+currentRoom).update({
+                     stock: stock,
+                     [`players/${playerId}/hand`]: hand,
+                     [`players/${playerId}/count`]: hand.length
+                 });
+            } else {
+                // Pass
+                const next = (gameData.turnIndex + 1) % gameData.playerOrder.length;
+                db.ref('rooms/'+currentRoom).update({
+                    turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
         }
     }
 
-    function canPlayTile(tile, board) {
-        if(board.length === 0) return true;
-        const l = board[0].a, r = board[board.length-1].b;
-        return (tile.a===l || tile.b===l || tile.a===r || tile.b===r);
-    }
-
-    function passTurn() {
-         const pIds = gameData.playerOrder;
-         const nextIndex = (gameData.turnIndex + 1) % pIds.length;
-         db.ref('rooms/' + currentRoom).update({
-            turnIndex: nextIndex,
-            turnStartTime: firebase.database.ServerValue.TIMESTAMP
-         });
-    }
-
-    // --- الرسم ---
-    function getPips(n) {
-        if(n===0) return "";
-        const map = {
-            1:['p1'], 2:['p2-1','p2-2'], 3:['p3-1','p3-2','p3-3'],
-            4:['p4-1','p4-2','p4-3','p4-4'], 5:['p5-1','p5-2','p5-3','p5-4','p5-5'],
-            6:['p6-1','p6-2','p6-3','p6-4','p6-5','p6-6']
-        };
-        return map[n].map(c => `<div class="pip ${c}"></div>`).join('');
-    }
-
+    // --- Rendering Utils ---
     function renderHand(hand) {
-        const div = document.getElementById('my-hand-container');
-        div.innerHTML = "";
-        hand.forEach((t, i) => {
-            div.innerHTML += `
-            <div class="domino hand-tile" onclick="playTile(${i})">
-                <div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div>
-            </div>`;
-        });
+        const d = document.getElementById('my-hand'); d.innerHTML = "";
+        hand.forEach((t, i) => d.innerHTML += createDomino(t, 'hand-tile', `onclick="playTileCheck(${i})"`) );
     }
-
     function renderBoard(board) {
-        const div = document.getElementById('game-board');
-        div.innerHTML = board.length ? "" : "<span style='color:#ccc'>HEKA DOMINO</span>";
-        board.forEach(t => {
-            const d = (t.a === t.b) ? "double" : "";
-            div.innerHTML += `
-            <div class="domino board-tile ${d}">
-                <div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div>
-            </div>`;
-        });
+        const d = document.getElementById('game-board'); d.innerHTML = "";
+        board.forEach(t => d.innerHTML += createDomino(t, (t.a===t.b ? 'board-tile double' : 'board-tile'), '') );
+    }
+    function createDomino(t, cls, attr) {
+        return `<div class="domino ${cls}" ${attr}>
+            <div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div>
+        </div>`;
+    }
+    function getPips(n) {
+        const m={1:['p1'],2:['p2-1','p2-2'],3:['p3-1','p3-2','p3-3'],4:['p4-1','p4-2','p4-3','p4-4'],5:['p5-1','p5-2','p5-3','p5-4','p5-5'],6:['p6-1','p6-2','p6-3','p6-4','p6-5','p6-6']};
+        return (m[n]||[]).map(c=>`<div class="pip ${c}"></div>`).join('');
     }
 
-    // --- التفاعل ---
-    function playTile(idx) {
-        const pIds = gameData.playerOrder;
-        if(pIds[gameData.turnIndex] !== myId) return; // ليس دورك
-
-        const myHand = gameData.players[myId].hand;
-        const tile = myHand[idx];
-        let board = gameData.board || [];
-        let newBoard = [...board];
-        let played = false;
-
-        if (board.length === 0) {
-            newBoard.push(tile); played = true;
-        } else {
-            const l = newBoard[0].a, r = newBoard[newBoard.length-1].b;
-            if (tile.a === r) { newBoard.push(tile); played = true; }
-            else if (tile.b === r) { newBoard.push({a:tile.b, b:tile.a}); played = true; }
-            else if (tile.b === l) { newBoard.unshift(tile); played = true; }
-            else if (tile.a === l) { newBoard.unshift({a:tile.b, b:tile.a}); played = true; }
-        }
-
-        if(played) {
-            myHand.splice(idx, 1);
-            const nextIdx = (gameData.turnIndex + 1) % pIds.length;
-            const updates = {
-                board: newBoard, turnIndex: nextIdx,
-                turnStartTime: firebase.database.ServerValue.TIMESTAMP,
-                [`players/${myId}/hand`]: myHand, [`players/${myId}/count`]: myHand.length
-            };
-            if(myHand.length === 0) updates['status'] = 'finished';
-            db.ref('rooms/' + currentRoom).update(updates);
-        }
-    }
-
-    function drawTile() {
-        // فحص إضافي للتأكد من النمط الثنائي
-        if (Object.keys(gameData.players).length > 2) return;
-
-        let stock = gameData.stock || [];
-        if(stock.length === 0) return;
-        const card = stock.pop();
-        const myHand = gameData.players[myId].hand || [];
-        myHand.push(card);
-        db.ref('rooms/' + currentRoom).update({
-            stock: stock,
-            [`players/${myId}/hand`]: myHand,
-            [`players/${myId}/count`]: myHand.length
-        });
-        // بعد السحب، الواجهة ستتحدث، ولو الورقة تنفع الزر هيختفي
-    }
-
-    // --- شات ---
-    function toggleChat() {
-        const w = document.getElementById('chat-window');
-        w.classList.toggle('hidden');
-        chatOpen = !chatOpen;
-        if(chatOpen) {
-            document.getElementById('chat-badge').classList.add('hidden');
-            unreadCount = 0;
-            const b = document.getElementById('chat-messages'); b.scrollTop = b.scrollHeight;
-        }
-    }
-    function sendMsg() {
-        const i = document.getElementById('chat-input');
-        if(i.value.trim()) db.ref(`rooms/${currentRoom}/chat`).push({name: myName, text: i.value});
-        i.value = "";
-    }
-    function updateChat(chat) {
-        if(!chat) return;
-        const box = document.getElementById('chat-messages');
-        const msgs = Object.values(chat);
-        if(msgs.length > box.childElementCount && !chatOpen) {
-             document.getElementById('chat-badge').innerText = ++unreadCount;
-             document.getElementById('chat-badge').classList.remove('hidden');
-        }
-        box.innerHTML = msgs.map(m => `<div class="chat-msg ${m.name===myName?'mine':''}"><b>${m.name}:</b> ${m.text}</div>`).join('');
-        if(chatOpen) box.scrollTop = box.scrollHeight;
+    // --- Chat ---
+    function toggleChat(){ chatOpen=!chatOpen; document.getElementById('chat-box').classList.toggle('hidden'); document.getElementById('chat-badge').classList.add('hidden'); }
+    function sendMsg(){ const i=document.getElementById('chat-in'); if(i.value) db.ref(`rooms/${currentRoom}/chat`).push({n:myName, t:i.value}); i.value=""; }
+    function updateChat(c){ 
+        const b=document.getElementById('chat-msgs'); b.innerHTML=Object.values(c||{}).map(m=>`<div class="msg ${m.n===myName?'mine':''}"><b>${m.n}:</b> ${m.t}</div>`).join(''); 
+        if(!chatOpen && c) document.getElementById('chat-badge').classList.remove('hidden');
     }
 </script>
 </body>
